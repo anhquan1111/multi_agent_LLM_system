@@ -148,14 +148,22 @@ fills its arguments; it never authors SQL.
 5. **Windows console is cp1252.** Scripts that print emoji or Vietnamese text need
    `sys.stdout.reconfigure(encoding="utf-8")` or they crash with `UnicodeEncodeError`.
 
-6. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
+6. **`pydantic-settings` reads `.env` directly and never populates `os.environ`.** Application
+   code must always use `settings.*`, never `os.getenv`. But third-party libraries that read
+   `os.environ` themselves see nothing: verified — `os.getenv("LLM_MODEL")` is `None` while
+   `settings.llm_model` is set. Pass credentials explicitly where the library accepts a parameter
+   (`ChatGoogleGenerativeAI(google_api_key=settings.google_api_key)`). LangSmith accepts no
+   parameter — it hooks in implicitly — so enabling tracing requires `load_dotenv()` at startup or
+   real environment variables.
+
+7. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
    `127.0.0.1` inside a container makes the service unreachable from outside while still working
    locally.
 
-7. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
+8. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
    every stored vector — the index must be rebuilt, or retrieval returns nonsense.
 
-8. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
+9. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
    hand-edit them and never commit them. `data/policies/*.md` is the source of truth.
 
 ## Keeping this file current
