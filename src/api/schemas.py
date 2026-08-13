@@ -18,6 +18,11 @@ class ChatRequest(BaseModel):
     )
 
 
+class ConfirmRequest(BaseModel):
+    thread_id: str = Field(description="Thread id returned alongside a pending_action")
+    approved: bool = Field(description="True to execute the pending action, false to discard it")
+
+
 class Citation(BaseModel):
     source: str
     chunk_id: str

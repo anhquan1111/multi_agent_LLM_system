@@ -13,19 +13,16 @@ Do not expand scope beyond the spec without asking.
 
 ## Current status (14/08/2026)
 
-Steps 0–3 are done. Walking skeleton is deployed and reachable:
-**https://multi-agent-llm-system.onrender.com** (Render free tier — sleeps after 15 min,
-first request takes ~50s; auto-deploys on every push to `master`).
+Steps 0–5 are done. Supervisor routing, policy RAG, read-only order lookups and a
+write agent behind human approval all work end to end, verified against the live API.
+Deployed at **https://multi-agent-llm-system.onrender.com** (Render free tier — sleeps after
+15 min, first request ~50s; auto-deploys on every push to `master`).
 
-Working: `GET /` → redirect to docs, `GET /health`, `POST /chat` (one node, hardcoded answer),
-`AgentState` with reducers, Dockerfile (runs as UID 1000, reads `$PORT`), 10 passing tests.
+Working: `GET /`, `GET /health`, `POST /chat`, `POST /confirm`; 45 passing tests, all LLM and
+retrieval calls mocked.
 
-**No LLM call exists anywhere in `src/` yet.** The key is configured and verified to reach the
-container, but nothing uses it.
-
-Next — step 4 (RAG): `scripts/seed_data.py` → `src/rag/` (two-stage chunking, embeddings, Chroma)
-→ `scripts/ingest.py` → replace `responder_node` with `policy_agent`. Then step 5 (supervisor +
-order/action agents + guardrails), step 6 (tests + CI), step 7 (README, demo, polish).
+Next — step 6: 20-question gold evaluation set, GitHub Actions CI, LangSmith tracing.
+Then step 7: README, demo GIF, polish.
 
 ## Stack (verified 13/08/2026, do not guess these)
 
@@ -41,7 +38,7 @@ order/action agents + guardrails), step 6 (tests + CI), step 7 (README, demo, po
 | pydantic | 2.13.4 |
 | pytest / ruff | 9.1.1 / 0.16.2 |
 
-Models: `gemini-3.6-flash` (LLM), `gemini-embedding-2` truncated to 768 dims (embeddings).
+Models: `gemini-3.5-flash-lite` (LLM), `gemini-embedding-2` truncated to 768 dims (embeddings).
 Google SDK is `google-genai` (import `from google import genai`), **not** the retired
 `google-generativeai`.
 
@@ -178,14 +175,25 @@ fills its arguments; it never authors SQL.
    so the value becomes `"8  # loop cap"`. This crashed the container on first run while the app
    worked perfectly locally. Put comments on their own line.
 
-8. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
+8. **Free-tier quota is per model, per day, and small.** `gemini-3.6-flash` allows 20
+   `generateContent` requests per day. One end-to-end run of four questions costs ~10 calls, so
+   two runs exhaust it. Quota is counted separately for each model, so switching to a
+   `*-flash-lite` model gives a fresh allowance. This is why the test suite mocks every LLM call:
+   a suite that hit the real API would burn the day's budget in one run.
+
+9. **Some models reject a request whose last turn is an assistant message** ("prefilling").
+   This happens naturally on the supervisor's second pass, when the previous turn was a
+   specialist's answer. Every prompt is built through `src/agents/messages.py` so it always ends
+   with a user turn — do not pass `*state["messages"]` directly to a model.
+
+10. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
    `127.0.0.1` inside a container makes the service unreachable from outside while still working
    locally.
 
-9. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
+11. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
    every stored vector — the index must be rebuilt, or retrieval returns nonsense.
 
-10. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
+12. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
    hand-edit them and never commit them. `data/policies/*.md` is the source of truth.
 
 ## Keeping this file current

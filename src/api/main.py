@@ -7,17 +7,19 @@ lives here, so the graph stays callable from a plain script or a future CLI.
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 from langchain_core.messages import HumanMessage
+from langgraph.types import Command
 
-from src.agents.graph import build_graph
-from src.api.schemas import ChatRequest, ChatResponse, HealthResponse
+from src.agents.graph import build_graph, open_checkpointer
+from src.api.schemas import ChatRequest, ChatResponse, ConfirmRequest, HealthResponse
 from src.config import settings
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 POLICIES = Path("data/policies")
 
 logger = logging.getLogger(__name__)
@@ -47,8 +49,42 @@ app = FastAPI(
 )
 
 # Built once at import time, not per request: compiling the graph on every call would add
-# latency for no benefit.
-graph = build_graph()
+# latency for no benefit. The checkpointer is what makes /confirm able to resume a paused run.
+graph = build_graph(checkpointer=open_checkpointer(settings.checkpoint_path))
+
+
+def _config(thread_id: str) -> dict[str, Any]:
+    return {"configurable": {"thread_id": thread_id}}
+
+
+def _to_response(result: dict[str, Any], thread_id: str) -> ChatResponse:
+    """Shape a graph result, whether it ran to completion or paused for approval.
+
+    A paused run returns only `__interrupt__` — none of the state fields are present — so the
+    two cases cannot share one code path.
+    """
+    pending = result.get("__interrupt__")
+    if pending:
+        proposed = pending[0].value
+        return ChatResponse(
+            answer=f"{proposed['description']} Please confirm.",
+            route="action_agent",
+            pending_action=proposed,
+            thread_id=thread_id,
+            steps=0,
+        )
+
+    messages = result.get("messages", [])
+    return ChatResponse(
+        # `.text`, not `.content`: models that return reasoning signatures put a list of blocks
+        # in `.content`, and that would fail ChatResponse validation with a 500.
+        answer=messages[-1].text if messages else "",
+        route=result.get("route", "finish"),
+        citations=result.get("citations", []),
+        pending_action=None,
+        thread_id=thread_id,
+        steps=result.get("step_count", 0),
+    )
 
 
 @app.get("/", include_in_schema=False)
@@ -77,16 +113,23 @@ def chat(request: ChatRequest) -> ChatResponse:
             "messages": [HumanMessage(content=request.message)],
             "customer_id": request.customer_id,
             "step_count": 0,
-        }
+        },
+        config=_config(thread_id),
     )
+    return _to_response(result, thread_id)
 
-    return ChatResponse(
-        # `.text`, not `.content`: models that return reasoning signatures put a list of blocks
-        # in `.content`, and that would fail ChatResponse validation with a 500.
-        answer=result["messages"][-1].text,
-        route=result.get("route", "finish"),
-        citations=result.get("citations", []),
-        pending_action=result.get("pending_action"),
-        thread_id=thread_id,
-        steps=result.get("step_count", 0),
-    )
+
+@app.post("/confirm", response_model=ChatResponse)
+def confirm(request: ConfirmRequest) -> ChatResponse:
+    """Approve or decline a pending write, resuming the paused run.
+
+    Resuming a thread that is not waiting on anything is a client mistake, not a server
+    error, so it answers 409 rather than pretending something happened.
+    """
+    config = _config(request.thread_id)
+
+    if not graph.get_state(config).next:
+        raise HTTPException(status_code=409, detail="No pending action for this thread_id.")
+
+    result = graph.invoke(Command(resume=request.approved), config=config)
+    return _to_response(result, request.thread_id)

@@ -15,9 +15,9 @@ and route each one to a specialist that is actually equipped to answer it.
 The read/write split is structural, not a prompt instruction: read-only agents are never given the
 write tools, so no amount of prompt injection reaches them.
 
-> **Status: policy RAG is live.** Ask a policy question and you get a real answer with the source
-> documents it came from. Supervisor routing, order lookups and the write agent are next — see the
-> roadmap below.
+> **Status: the multi-agent flow is live.** A supervisor routes each question to a policy RAG
+> agent, a read-only order agent, or a write agent that pauses for your confirmation before it
+> changes anything.
 >
 > The demo runs on a free instance that sleeps after 15 minutes of inactivity; the first request
 > may take ~50 seconds to wake it. Hit `/health` first.
@@ -47,7 +47,7 @@ Scope and definition of done: [`docs/spec.md`](docs/spec.md).
 
 ## Tech stack
 
-Python 3.12 · LangGraph 1.2 · Gemini (`gemini-3.6-flash` + `gemini-embedding-2`) · Chroma ·
+Python 3.12 · LangGraph 1.2 · Gemini (`gemini-3.5-flash-lite` + `gemini-embedding-2`) · Chroma ·
 SQLite · FastAPI · Docker · GitHub Actions
 
 ## Endpoints
@@ -56,6 +56,7 @@ SQLite · FastAPI · Docker · GitHub Actions
 |---|---|---|
 | `GET` | `/health` | Liveness plus whether the API key reached the process (never its value) |
 | `POST` | `/chat` | Ask a question; returns the answer, route, citations and any pending action |
+| `POST` | `/confirm` | Approve or decline a pending write, resuming the paused run |
 | `GET` | `/docs` | Interactive Swagger UI (the bare URL redirects here) |
 
 ## Run locally
@@ -87,9 +88,9 @@ uv run ruff check .
 
 - [x] Walking skeleton: one-node graph → FastAPI → Docker → live URL
 - [x] RAG over policy documents with citations
-- [ ] Supervisor routing with a read-only order agent
-- [ ] Write agent behind `interrupt()` human approval
-- [ ] Guardrails: loop cap, stuck detection, retry with backoff, token ceiling
+- [x] Supervisor routing with a read-only order agent
+- [x] Write agent behind `interrupt()` human approval
+- [x] Guardrails: loop cap, stuck detection, retry with backoff
 - [ ] 20-question gold evaluation set for routing and answer accuracy
 - [ ] CI on GitHub Actions
 

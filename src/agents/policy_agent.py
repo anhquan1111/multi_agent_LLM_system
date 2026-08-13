@@ -11,6 +11,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from src.agents.llm import get_llm, with_retry
+from src.agents.messages import last_user_question
 from src.agents.state import AgentState
 from src.rag.chunking import Chunk
 from src.rag.store import search
@@ -42,19 +43,12 @@ def _format(chunks: list[Chunk]) -> str:
     )
 
 
-def _last_question(state: AgentState) -> str:
-    for message in reversed(state.get("messages", [])):
-        if isinstance(message, HumanMessage):
-            return str(message.content)
-    return ""
-
-
 def policy_agent_node(state: AgentState, llm: BaseChatModel | None = None) -> dict:
     """Retrieve policy excerpts, answer from them, and report which ones were used.
 
     `llm` is injectable so tests can pass a fake instead of calling Gemini.
     """
-    question = _last_question(state)
+    question = last_user_question(state)
     chunks = search(question, k=TOP_K)
 
     if not chunks:
