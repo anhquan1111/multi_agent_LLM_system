@@ -117,3 +117,40 @@ def test_confirming_an_unknown_thread_is_a_client_error(client):
     resp = client.post("/confirm", json={"thread_id": "never-existed", "approved": True})
 
     assert resp.status_code == 409
+
+
+@pytest.mark.integration
+def test_the_model_is_asked_once_not_twice(client, cancelling_llm, processing_order):
+    """LangGraph re-runs an interrupted node from the top.
+
+    With the model call and the interrupt in one node, approving would ask the model again
+    and could execute a different action from the one shown to the customer. The proposal is
+    therefore made in its own node and checkpointed before the pause.
+    """
+    thread_id = client.post(
+        "/chat",
+        json={"message": "cancel that order", "customer_id": processing_order["customer_id"]},
+    ).json()["thread_id"]
+    calls_after_chat = len(cancelling_llm.calls)
+
+    client.post("/confirm", json={"thread_id": thread_id, "approved": True})
+
+    assert calls_after_chat == 1
+    assert len(cancelling_llm.calls) == 1, "confirming must not re-ask the model"
+
+
+@pytest.mark.integration
+def test_what_runs_is_what_was_shown(client, cancelling_llm, processing_order):
+    """The executed action must match the description the customer approved."""
+    body = client.post(
+        "/chat",
+        json={"message": "cancel that order", "customer_id": processing_order["customer_id"]},
+    ).json()
+    shown = body["pending_action"]
+
+    client.post("/confirm", json={"thread_id": body["thread_id"], "approved": True})
+
+    assert shown["tool"] == "cancel_order"
+    assert shown["args"]["order_id"] == processing_order["id"]
+    assert str(processing_order["id"]) in shown["description"]
+    assert status_of(processing_order["id"]) == "cancelled"

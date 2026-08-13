@@ -60,7 +60,8 @@ docker build -t masys . && docker run -p 7860:7860 --env-file .env masys
 ## Layout
 
 ```
-src/agents/   supervisor, the three specialist agents, graph + state definitions
+src/agents/   supervisor, the specialist agents, graph + state definitions
+              (the write path is two nodes: propose, then confirm — see patterns)
 src/rag/      chunking, embeddings, Chroma read/write
 src/tools/    plain Python functions exposed to agents (read tools and write tools live in
               SEPARATE modules — see "Non-obvious patterns")
@@ -186,14 +187,21 @@ fills its arguments; it never authors SQL.
    specialist's answer. Every prompt is built through `src/agents/messages.py` so it always ends
    with a user turn — do not pass `*state["messages"]` directly to a model.
 
-10. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
+10. **LangGraph re-runs an interrupted node from the top on resume.** Verified: code before
+   `interrupt()` executes twice, code after it once. A node holding both a model call and an
+   interrupt therefore asks the model again *after* the customer approved, and may execute a
+   different action from the one shown to them. The write path is split into
+   `propose_action_node` (model call, writes `pending_action` to state) and
+   `confirm_action_node` (interrupt, then executes the stored proposal). Do not merge them.
+
+11. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
    `127.0.0.1` inside a container makes the service unreachable from outside while still working
    locally.
 
-11. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
+12. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
    every stored vector — the index must be rebuilt, or retrieval returns nonsense.
 
-12. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
+13. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
    hand-edit them and never commit them. `data/policies/*.md` is the source of truth.
 
 ## Keeping this file current

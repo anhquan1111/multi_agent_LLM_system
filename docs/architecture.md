@@ -226,6 +226,12 @@ def action_agent_node(state: AgentState) -> dict:
     return {"messages": [ToolMessage(str(result), tool_call_id=call.id)], "step_count": 1}
 ```
 
+The write path is two nodes. `propose_action_node` makes the model call and writes
+`pending_action` into state; `confirm_action_node` calls `interrupt()` and, once resumed,
+executes that stored proposal. LangGraph re-runs an interrupted node from the top, so a
+single node would re-ask the model after approval and could execute something other than what
+the customer saw.
+
 `interrupt()` raises out of the node; the checkpointer stores everything. `POST /confirm` resumes
 with `graph.invoke(Command(resume=True), config={"configurable": {"thread_id": ...}})`, and
 execution continues from the line after `interrupt()`.

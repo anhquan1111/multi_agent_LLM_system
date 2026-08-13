@@ -1,16 +1,20 @@
-"""Action agent: the only node that can change data, and it never does so unasked.
+"""Write path, split across two nodes on purpose.
 
-The model chooses a write tool and its arguments, then `interrupt()` pauses the graph and
-checkpoints the state. Nothing has been written at that point. Execution resumes only when
-`POST /confirm` sends `Command(resume=True)`, and continues from the line after `interrupt()`.
+`propose_action_node` asks the model what to change and writes the proposal into state.
+`confirm_action_node` pauses on `interrupt()` and, once resumed, executes *that stored
+proposal*.
 
-This is the difference between a demo and something you would let near real data.
+The split is not cosmetic. LangGraph re-runs an interrupted node from the top when it
+resumes, so a single node holding both the model call and the interrupt would ask the model
+again after the customer clicked approve — and could then execute a *different* action from
+the one that was shown to them. Splitting means the proposal is checkpointed before the
+pause, so what runs is exactly what was approved. It also halves the model calls.
 """
 
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.types import interrupt
 
 from src.agents.llm import get_llm, with_retry
@@ -31,18 +35,20 @@ been made; the system reports the result after the customer confirms."""
 
 DECLINED = "Understood — I have not made any changes."
 NOTHING_TO_DO = "I could not identify a change to make. Could you say what you would like done?"
+LOST_PROPOSAL = "That request expired before it was confirmed. Please ask again."
 
 
-def _describe(name: str, args: dict[str, Any]) -> str:
-    if name == "cancel_order":
+def describe(tool_name: str, args: dict[str, Any]) -> str:
+    """A sentence the customer reads before approving. Never show raw arguments."""
+    if tool_name == "cancel_order":
         return f"Cancel order {args.get('order_id')} and refund it in full."
-    if name == "create_ticket":
+    if tool_name == "create_ticket":
         return f"Open a support ticket for order {args.get('order_id')}: {args.get('reason')}"
-    return f"Run {name} with {args}"
+    return f"Run {tool_name} with {args}"
 
 
-def action_agent_node(state: AgentState, llm: BaseChatModel | None = None) -> dict:
-    """Propose one write, pause for approval, and only then execute it."""
+def propose_action_node(state: AgentState, llm: BaseChatModel | None = None) -> dict:
+    """Decide what change to make. Reads only — nothing is written to the shop database."""
     customer_id = state.get("customer_id", "")
     model = (llm or get_llm()).bind_tools(WRITE_TOOLS)
 
@@ -66,40 +72,53 @@ def action_agent_node(state: AgentState, llm: BaseChatModel | None = None) -> di
     call = calls[0]
     args = dict(call["args"])
     args["customer_id"] = customer_id  # from state, never from the model
-    description = _describe(call["name"], args)
-
-    # Everything above this line is read-only. The graph stops here and the state is
-    # checkpointed; the HTTP response carries `pending_action` and the thread id.
-    approved = interrupt(
-        {"tool": call["name"], "args": args, "description": description}
-    )
-
-    if not approved:
-        return {
-            "messages": [AIMessage(content=DECLINED)],
-            "route": "finish",
-            "pending_action": None,
-            "step_count": 1,
-            "last_agent_output": DECLINED,
-        }
-
-    tool = TOOLS_BY_NAME.get(call["name"])
-    if tool is None:
-        result = f"Unknown tool {call['name']}. Nothing changed."
-    else:
-        try:
-            result = str(tool.invoke(args))
-        except Exception as exc:  # noqa: BLE001 — reported rather than crashing the request
-            result = f"That change could not be completed ({type(exc).__name__}). Nothing changed."
 
     return {
-        "messages": [
-            response,
-            ToolMessage(content=result, tool_call_id=call["id"]),
-            AIMessage(content=result),
-        ],
+        "pending_action": {
+            "tool": call["name"],
+            "args": args,
+            "description": describe(call["name"], args),
+        },
+        "step_count": 1,
+    }
+
+
+def confirm_action_node(state: AgentState) -> dict:
+    """Pause for approval, then execute exactly what was proposed.
+
+    On resume LangGraph re-runs this node from the top, but everything it needs is read from
+    state rather than regenerated, so the second pass is deterministic.
+    """
+    proposed = state.get("pending_action")
+    if not proposed:
+        return _finish(LOST_PROPOSAL)
+
+    approved = interrupt(proposed)
+    if not approved:
+        return _finish(DECLINED)
+
+    tool = TOOLS_BY_NAME.get(proposed["tool"])
+    if tool is None:
+        return _finish(f"Unknown action {proposed['tool']}. Nothing changed.")
+
+    try:
+        result = str(tool.invoke(proposed["args"]))
+    except Exception as exc:  # noqa: BLE001 — reported rather than crashing the request
+        result = f"That change could not be completed ({type(exc).__name__}). Nothing changed."
+
+    return _finish(result)
+
+
+def _finish(message: str) -> dict:
+    return {
+        "messages": [AIMessage(content=message)],
         "route": "finish",
         "pending_action": None,
         "step_count": 1,
-        "last_agent_output": result,
+        "last_agent_output": message,
     }
+
+
+def route_after_proposal(state: AgentState) -> str:
+    """Skip the approval step entirely when the model chose not to change anything."""
+    return "confirm_action" if state.get("pending_action") else "supervisor"
