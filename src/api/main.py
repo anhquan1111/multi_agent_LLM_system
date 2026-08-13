@@ -7,6 +7,7 @@ lives here, so the graph stays callable from a plain script or a future CLI.
 from uuid import uuid4
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from langchain_core.messages import HumanMessage
 
 from src.agents.graph import build_graph
@@ -24,6 +25,12 @@ app = FastAPI(
 # Built once at import time, not per request: compiling the graph on every call would add
 # latency for no benefit.
 graph = build_graph()
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    """Send the bare URL somewhere useful. Anyone opening the deployed link lands here."""
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health", response_model=HealthResponse)

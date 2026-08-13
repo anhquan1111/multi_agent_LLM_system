@@ -3,6 +3,14 @@
 import pytest
 
 
+def test_root_redirects_to_docs(client):
+    """A bare URL is what people paste into a browser; it must not 404."""
+    resp = client.get("/", follow_redirects=False)
+
+    assert resp.status_code in (307, 308)
+    assert resp.headers["location"] == "/docs"
+
+
 def test_health_reports_ok(client):
     resp = client.get("/health")
 

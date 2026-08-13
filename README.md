@@ -1,5 +1,7 @@
 # Multi-Agent E-Commerce Support Assistant
 
+**Live demo:** https://multi-agent-llm-system.onrender.com
+
 A customer-support assistant that has to answer two fundamentally different kinds of question —
 and route each one to a specialist that is actually equipped to answer it.
 
@@ -53,7 +55,7 @@ SQLite · FastAPI · Docker · GitHub Actions
 |---|---|---|
 | `GET` | `/health` | Liveness plus whether the API key reached the process (never its value) |
 | `POST` | `/chat` | Ask a question; returns the answer, route, citations and any pending action |
-| `GET` | `/docs` | Interactive Swagger UI |
+| `GET` | `/docs` | Interactive Swagger UI (the bare URL redirects here) |
 
 ## Run locally
 
