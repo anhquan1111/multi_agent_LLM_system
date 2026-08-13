@@ -101,4 +101,8 @@ uv run ruff check .
 - Synthetic data, generated from a fixed seed so the evaluation set stays valid.
 - No reranking, hybrid retrieval or query rewriting — deferred until the gold set shows retrieval
   is actually the bottleneck.
+- **Pending approvals do not survive a restart.** The checkpointer writes to the container's
+  own disk, which the free tier wipes on every deploy and every wake from sleep. If the demo
+  sleeps between `/chat` and `/confirm`, the paused run is gone and `/confirm` answers 409.
+  A persistent disk or a Postgres checkpointer would fix it; neither is free.
 - English only.
