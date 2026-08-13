@@ -4,6 +4,9 @@ Intentionally thin: parse the request, call the graph, shape the response. No bu
 lives here, so the graph stays callable from a plain script or a future CLI.
 """
 
+import logging
+from contextlib import asynccontextmanager
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -14,12 +17,33 @@ from src.agents.graph import build_graph
 from src.api.schemas import ChatRequest, ChatResponse, HealthResponse
 from src.config import settings
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
+POLICIES = Path("data/policies")
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Build the vector index once at boot if it is missing.
+
+    Deliberately not fatal: a missing index makes policy answers unavailable, but /health
+    must still respond so the failure is diagnosable instead of showing a dead container.
+    """
+    try:
+        from src.rag.store import ensure_index
+
+        logger.info("Vector index ready: %d chunks", ensure_index(POLICIES))
+    except Exception:
+        logger.exception("Could not build the vector index; policy answers will be unavailable")
+    yield
+
 
 app = FastAPI(
     title="Multi-Agent E-Commerce Support Assistant",
     version=VERSION,
     description="Supervisor-routed support assistant over shop policies and order data.",
+    lifespan=lifespan,
 )
 
 # Built once at import time, not per request: compiling the graph on every call would add
@@ -57,7 +81,9 @@ def chat(request: ChatRequest) -> ChatResponse:
     )
 
     return ChatResponse(
-        answer=result["messages"][-1].content,
+        # `.text`, not `.content`: models that return reasoning signatures put a list of blocks
+        # in `.content`, and that would fail ChatResponse validation with a 500.
+        answer=result["messages"][-1].text,
         route=result.get("route", "finish"),
         citations=result.get("citations", []),
         pending_action=result.get("pending_action"),

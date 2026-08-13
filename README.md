@@ -15,7 +15,9 @@ and route each one to a specialist that is actually equipped to answer it.
 The read/write split is structural, not a prompt instruction: read-only agents are never given the
 write tools, so no amount of prompt injection reaches them.
 
-> **Status: walking skeleton.** The deployment path is proven end to end — FastAPI, Docker and a
+> **Status: step 4 of 7 — policy RAG is live.**
+>
+> Original status note: The deployment path is proven end to end — FastAPI, Docker and a
 > live URL — but the routing graph, retrieval and tools are not wired up yet. See the roadmap below.
 >
 > The demo runs on a free instance that sleeps after 15 minutes of inactivity; the first request
@@ -85,7 +87,7 @@ uv run ruff check .
 ## Roadmap
 
 - [x] Walking skeleton: one-node graph → FastAPI → Docker → live URL
-- [ ] RAG over policy documents with citations
+- [x] RAG over policy documents with citations
 - [ ] Supervisor routing with a read-only order agent
 - [ ] Write agent behind `interrupt()` human approval
 - [ ] Guardrails: loop cap, stuck detection, retry with backoff, token ceiling

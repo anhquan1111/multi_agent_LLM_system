@@ -156,7 +156,7 @@ data/policies/*.md
    → RecursiveCharacterTextSplitter    chunk_size=800, chunk_overlap=100
    → gemini-embedding-2 @ 768 dims     batched at build time
    → Chroma (persisted to data/chroma) collection "policies"
-   → similarity search, k=4
+   → similarity search, k=4 (no reranking — see section 11)
    → prompt with numbered chunks + "answer only from these; say you don't know otherwise"
    → answer + citations
 ```
@@ -169,8 +169,11 @@ across a boundary readable in both chunks.
 "Returns" and "Warranty" — the near-duplicate passages in those two documents are exactly what makes
 retrieval hard here, and heading metadata is what keeps them apart.
 
-**Ingestion runs at Docker build time**, not at container start. Hugging Face Spaces cold starts
-would otherwise pay for embedding every document on every boot.
+**Ingestion runs at application startup**, not at Docker build time. Building the index during
+`docker build` would require the API key as a build argument, baking a secret into the image
+layers. The corpus is 35 chunks, so embedding at boot costs a few seconds and the host's disk can
+stay ephemeral. `ensure_index()` is a no-op when the collection already has documents, and a
+failure there is logged rather than fatal so `/health` still answers.
 
 Deliberately not implemented, listed as future work in the README: reranking, hybrid BM25 + dense
 retrieval, query rewriting, Corrective RAG.

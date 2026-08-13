@@ -23,6 +23,7 @@ RUN uv sync --locked --no-dev --no-install-project
 # Source code last, because it changes on every commit.
 COPY --chown=user:user src/ ./src/
 COPY --chown=user:user scripts/ ./scripts/
+COPY --chown=user:user data/policies/ ./data/policies/
 RUN uv sync --locked --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH"
