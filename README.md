@@ -1,14 +1,3 @@
----
-title: Multi-Agent Support Assistant
-emoji: 🛒
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: false
-short_description: Supervisor-routed multi-agent assistant over shop policies and order data
----
-
 # Multi-Agent E-Commerce Support Assistant
 
 A customer-support assistant that has to answer two fundamentally different kinds of question —
@@ -24,9 +13,11 @@ and route each one to a specialist that is actually equipped to answer it.
 The read/write split is structural, not a prompt instruction: read-only agents are never given the
 write tools, so no amount of prompt injection reaches them.
 
-> **Status: walking skeleton.** The deployment path is proven end to end — FastAPI, Docker, and a
-> live Space — but the routing graph, retrieval and tools are not wired up yet. See the roadmap
-> below.
+> **Status: walking skeleton.** The deployment path is proven end to end — FastAPI, Docker and a
+> live URL — but the routing graph, retrieval and tools are not wired up yet. See the roadmap below.
+>
+> The demo runs on a free instance that sleeps after 15 minutes of inactivity; the first request
+> may take ~50 seconds to wake it. Hit `/health` first.
 
 ## Architecture
 
@@ -79,7 +70,7 @@ With Docker:
 
 ```bash
 docker build -t masys .
-docker run -p 7860:7860 --env-file .env masys
+docker run -p 7860:7860 --env-file .env masys   # or -e PORT=10000 to mimic Render
 ```
 
 ## Tests
@@ -91,7 +82,7 @@ uv run ruff check .
 
 ## Roadmap
 
-- [x] Walking skeleton: one-node graph → FastAPI → Docker → live Space
+- [x] Walking skeleton: one-node graph → FastAPI → Docker → live URL
 - [ ] RAG over policy documents with citations
 - [ ] Supervisor routing with a read-only order agent
 - [ ] Write agent behind `interrupt()` human approval

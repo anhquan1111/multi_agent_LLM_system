@@ -27,7 +27,10 @@ RUN uv sync --locked --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Hugging Face Spaces requires 7860. 0.0.0.0 (not 127.0.0.1) so the port mapping
-# can actually reach the process from outside the container.
+# Bind 0.0.0.0 (not 127.0.0.1) or the port mapping cannot reach the process from
+# outside the container. The port itself has to be read from $PORT at runtime because
+# hosts disagree: Render injects PORT=10000, HF Spaces expects 7860. Shell form is
+# required here — exec form does not expand variables.
+ENV PORT=7860
 EXPOSE 7860
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["sh", "-c", "uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
