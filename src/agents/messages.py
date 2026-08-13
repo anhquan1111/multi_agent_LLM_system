@@ -5,7 +5,7 @@ happens naturally here on the supervisor's second pass, when the previous turn w
 specialist's answer. Every prompt built in this project therefore ends with a user turn.
 """
 
-from langchain_core.messages import AnyMessage, HumanMessage
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 
 from src.agents.state import AgentState
 
@@ -19,9 +19,20 @@ def last_user_question(state: AgentState) -> str:
 
 
 def transcript(state: AgentState, closing_question: str) -> list[AnyMessage]:
-    """Conversation so far, always ending with a user turn.
+    """What was asked and what has been answered, always ending with a user turn.
 
-    Assistant messages are kept so the supervisor can see what has already been answered,
-    which is what lets it decide whether a second specialist is still needed.
+    Assistant answers are kept: seeing them is what lets the supervisor decide whether a
+    second specialist is still needed, or whether the request is already satisfied.
+
+    Tool plumbing is dropped — the tool-call messages and their raw results. The supervisor
+    is bound to no tools, so handing it calls for tools it does not have adds tokens and
+    noise to every routing decision, and some providers reject the combination outright.
+    It needs to know *what* was answered, not *how* it was looked up.
     """
-    return [*state.get("messages", []), HumanMessage(content=closing_question)]
+    kept = [
+        message
+        for message in state.get("messages", [])
+        if isinstance(message, HumanMessage)
+        or (isinstance(message, AIMessage) and message.text.strip())
+    ]
+    return [*kept, HumanMessage(content=closing_question)]

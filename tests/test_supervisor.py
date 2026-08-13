@@ -61,3 +61,31 @@ def test_supervisor_stops_at_the_cap_without_calling_the_model(fake_llm):
     assert result["route"] == "finish"
     assert result["error"] == "step_cap"
     assert fake_llm.calls == []
+
+
+def test_transcript_keeps_answers_but_drops_tool_plumbing():
+    """The supervisor is bound to no tools; sending it tool calls is noise and risk."""
+    from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+
+    from src.agents.messages import transcript
+
+    state = {
+        "messages": [
+            HumanMessage("status of order 1006?"),
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {"name": "get_order", "args": {}, "id": "c1", "type": "tool_call"}
+                ],
+            ),
+            ToolMessage(content="{'status': 'processing'}", tool_call_id="c1"),
+            AIMessage("Order 1006 is processing."),
+        ]
+    }
+
+    result = transcript(state, "which specialist next?")
+
+    kinds = [type(m).__name__ for m in result]
+    assert kinds == ["HumanMessage", "AIMessage", "HumanMessage"]
+    assert result[-1].content == "which specialist next?"
+    assert not any(getattr(m, "tool_calls", None) for m in result)
