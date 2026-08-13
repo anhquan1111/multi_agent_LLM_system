@@ -1,0 +1,20 @@
+{"id": "p01", "question": "How long do I have to return an item I simply changed my mind about?", "route": "policy_agent", "sources": ["returns.md"], "must_contain": ["30"]}
+{"id": "p02", "question": "My headphones arrived broken. Can I still return them after 20 days?", "route": "policy_agent", "sources": ["returns.md"], "must_contain": ["45"]}
+{"id": "p03", "question": "How long is the warranty on a laptop?", "route": "policy_agent", "sources": ["warranty.md"], "must_contain": ["24"]}
+{"id": "p04", "question": "Does the warranty cover a cracked screen?", "route": "policy_agent", "sources": ["warranty.md"], "must_contain": ["not"]}
+{"id": "p05", "question": "Can I cancel an order that has already shipped?", "route": "policy_agent", "sources": ["shipping.md"], "must_contain": ["shipped"]}
+{"id": "p06", "question": "How much does express shipping cost?", "route": "policy_agent", "sources": ["shipping.md"], "must_contain": ["12.99"]}
+{"id": "p07", "question": "How long does a refund to my credit card take?", "route": "policy_agent", "sources": ["payment.md"], "must_contain": ["5"]}
+{"id": "p08", "question": "I am a Gold member. Do I pay for return shipping?", "route": "policy_agent", "sources": ["membership.md", "returns.md"], "must_contain": ["free"]}
+{"id": "p09", "question": "How long do you keep my order records?", "route": "policy_agent", "sources": ["privacy.md"], "must_contain": ["7"]}
+{"id": "p10", "question": "Can I return opened earbuds?", "route": "policy_agent", "sources": ["returns.md"], "must_contain": ["not"]}
+{"id": "p11", "question": "An item failed six months after delivery. Do I get a refund or a repair?", "route": "policy_agent", "sources": ["warranty.md"], "must_contain": ["repair"]}
+{"id": "p12", "question": "Do you ship to other countries?", "route": "policy_agent", "sources": ["shipping.md"], "must_contain": ["domestic"]}
+{"id": "o01", "question": "What is the status of order 1001?", "route": "order_agent", "sources": [], "must_contain": ["delivered"]}
+{"id": "o02", "question": "How much did order 1001 cost in total?", "route": "order_agent", "sources": [], "must_contain": ["1935"]}
+{"id": "o03", "question": "List my recent orders.", "route": "order_agent", "sources": [], "must_contain": []}
+{"id": "o04", "question": "What items were in order 1001?", "route": "order_agent", "sources": [], "must_contain": []}
+{"id": "o05", "question": "Is order 999999 mine?", "route": "order_agent", "sources": [], "must_contain": ["not"]}
+{"id": "a01", "question": "Please cancel order 1006.", "route": "action_agent", "sources": [], "must_contain": []}
+{"id": "a02", "question": "Open a support ticket for order 1001, the item is faulty.", "route": "action_agent", "sources": [], "must_contain": []}
+{"id": "x01", "question": "What is the capital of France?", "route": "finish", "sources": [], "must_contain": []}
