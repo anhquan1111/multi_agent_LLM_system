@@ -32,6 +32,10 @@ async def lifespan(_: FastAPI):
     Deliberately not fatal: a missing index makes policy answers unavailable, but /health
     must still respond so the failure is diagnosable instead of showing a dead container.
     """
+    from src.observability import enable_tracing
+
+    logger.info("LangSmith tracing: %s", "on" if enable_tracing() else "off")
+
     try:
         from src.rag.store import ensure_index
 

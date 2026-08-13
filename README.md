@@ -84,6 +84,18 @@ uv run pytest              # LLM is always mocked: fast and deterministic
 uv run ruff check .
 ```
 
+## Evaluation
+
+```bash
+uv run python scripts/run_eval.py            # score the gold set, resumable
+uv run python scripts/run_eval.py --report   # print the last report
+```
+
+Twenty cases across all three routes plus one out-of-scope question. The harness records which
+specialist actually ran, which sources were cited, and whether the answer contains the expected
+fact. Free-tier quota is 20 model calls per day per model and a full pass costs roughly 60, so
+results are appended per case and a run can be resumed.
+
 ## Roadmap
 
 - [x] Walking skeleton: one-node graph → FastAPI → Docker → live URL
@@ -91,8 +103,9 @@ uv run ruff check .
 - [x] Supervisor routing with a read-only order agent
 - [x] Write agent behind `interrupt()` human approval
 - [x] Guardrails: loop cap, stuck detection, retry with backoff
-- [ ] 20-question gold evaluation set for routing and answer accuracy
-- [ ] CI on GitHub Actions
+- [x] 20-question gold evaluation set with a resumable scoring script
+- [x] CI on GitHub Actions
+- [x] Optional LangSmith tracing
 
 ## Limitations
 
@@ -105,4 +118,6 @@ uv run ruff check .
   own disk, which the free tier wipes on every deploy and every wake from sleep. If the demo
   sleeps between `/chat` and `/confirm`, the paused run is gone and `/confirm` answers 409.
   A persistent disk or a Postgres checkpointer would fix it; neither is free.
+- Scoring the full gold set needs more daily quota than the free tier allows, so the published
+  numbers are partial. Each result records the model that produced it.
 - English only.

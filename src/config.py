@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     max_tokens_per_request: int = 8000
     request_timeout_seconds: int = 60
 
+    # Tracing (optional). LangSmith reads these from os.environ, not from here — see
+    # src/observability.py for why they have to be copied across explicitly.
+    langchain_tracing_v2: bool = False
+    langchain_api_key: str = ""
+    langchain_project: str = "multi-agent-llm-system"
+
     # Storage
     chroma_dir: Path = Path("data/chroma")
     sqlite_path: Path = Path("data/shop.db")

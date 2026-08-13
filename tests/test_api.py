@@ -88,3 +88,31 @@ def test_a_two_part_answer_keeps_both_halves():
     assert "45 days" in answer
     assert "earlier answer" not in answer, "previous turns must not leak into this response"
     assert answer.index("Order 1006") < answer.index("45 days"), "oldest first"
+
+
+def test_tracing_stays_off_without_a_key(monkeypatch):
+    """The deployed demo has no LangSmith key; it must run identically without one."""
+    from src.config import settings
+    from src.observability import enable_tracing
+
+    monkeypatch.setattr(settings, "langchain_tracing_v2", True)
+    monkeypatch.setattr(settings, "langchain_api_key", "   ")
+
+    assert enable_tracing() is False
+
+
+def test_tracing_copies_settings_into_environ(monkeypatch):
+    """pydantic-settings never populates os.environ, and LangSmith reads only from there."""
+    import os
+
+    from src.config import settings
+    from src.observability import enable_tracing
+
+    monkeypatch.setattr(settings, "langchain_tracing_v2", True)
+    monkeypatch.setattr(settings, "langchain_api_key", "ls-fake")
+    monkeypatch.setattr(settings, "langchain_project", "test-project")
+    monkeypatch.delenv("LANGCHAIN_API_KEY", raising=False)
+
+    assert enable_tracing() is True
+    assert os.environ["LANGCHAIN_API_KEY"] == "ls-fake"
+    assert os.environ["LANGCHAIN_PROJECT"] == "test-project"
