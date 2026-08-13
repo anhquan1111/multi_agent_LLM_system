@@ -66,3 +66,25 @@ def test_chat_rejects_an_empty_message(client):
     resp = client.post("/chat", json={"message": ""})
 
     assert resp.status_code == 422
+
+
+def test_a_two_part_answer_keeps_both_halves():
+    """Two specialists answering in two hops must both reach the customer."""
+    from langchain_core.messages import AIMessage, HumanMessage
+
+    from src.api.main import _answer_for_turn
+
+    messages = [
+        HumanMessage("earlier question"),
+        AIMessage("earlier answer"),
+        HumanMessage("status of order 1006, and the return policy?"),
+        AIMessage("Order 1006 is processing, total $2,471.78."),
+        AIMessage("Damaged items can be returned within 45 days [returns.md]."),
+    ]
+
+    answer = _answer_for_turn(messages)
+
+    assert "Order 1006 is processing" in answer
+    assert "45 days" in answer
+    assert "earlier answer" not in answer, "previous turns must not leak into this response"
+    assert answer.index("Order 1006") < answer.index("45 days"), "oldest first"

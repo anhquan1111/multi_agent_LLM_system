@@ -12,7 +12,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.types import Command
 
 from src.agents.graph import build_graph, open_checkpointer
@@ -57,6 +57,25 @@ def _config(thread_id: str) -> dict[str, Any]:
     return {"configurable": {"thread_id": thread_id}}
 
 
+def _answer_for_turn(messages: list) -> str:
+    """Every answer produced since the customer last spoke, oldest first.
+
+    A two-part question is answered by two specialists in two hops, so taking only the last
+    message would silently drop half of what was asked for. Stopping at the previous
+    `HumanMessage` keeps earlier turns of the conversation out of this response.
+
+    `.text`, not `.content`: models that return reasoning signatures put a list of blocks in
+    `.content`, and that would fail ChatResponse validation with a 500.
+    """
+    answers: list[str] = []
+    for message in reversed(messages):
+        if isinstance(message, HumanMessage):
+            break
+        if isinstance(message, AIMessage) and message.text.strip():
+            answers.append(message.text.strip())
+    return "\n\n".join(reversed(answers))
+
+
 def _to_response(result: dict[str, Any], thread_id: str) -> ChatResponse:
     """Shape a graph result, whether it ran to completion or paused for approval.
 
@@ -74,11 +93,8 @@ def _to_response(result: dict[str, Any], thread_id: str) -> ChatResponse:
             steps=0,
         )
 
-    messages = result.get("messages", [])
     return ChatResponse(
-        # `.text`, not `.content`: models that return reasoning signatures put a list of blocks
-        # in `.content`, and that would fail ChatResponse validation with a 500.
-        answer=messages[-1].text if messages else "",
+        answer=_answer_for_turn(result.get("messages", [])),
         route=result.get("route", "finish"),
         citations=result.get("citations", []),
         pending_action=None,
