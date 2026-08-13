@@ -156,14 +156,19 @@ fills its arguments; it never authors SQL.
    parameter — it hooks in implicitly — so enabling tracing requires `load_dotenv()` at startup or
    real environment variables.
 
-7. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
+7. **Never put a trailing comment on a value line in `.env`.** Two parsers disagree: python-dotenv
+   (used locally by pydantic-settings) strips `VALUE  # note`, but Docker's `--env-file` keeps it,
+   so the value becomes `"8  # loop cap"`. This crashed the container on first run while the app
+   worked perfectly locally. Put comments on their own line.
+
+8. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
    `127.0.0.1` inside a container makes the service unreachable from outside while still working
    locally.
 
-8. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
+9. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
    every stored vector — the index must be rebuilt, or retrieval returns nonsense.
 
-9. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
+10. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
    hand-edit them and never commit them. `data/policies/*.md` is the source of truth.
 
 ## Keeping this file current
