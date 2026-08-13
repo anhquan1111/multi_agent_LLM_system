@@ -47,4 +47,5 @@ for var in ("LLM_MODEL", "EMBEDDING_MODEL"):
     value = os.getenv(var, "")
     pool = chat_models if var == "LLM_MODEL" else embed_models
     ok = any(name.endswith(value) for name in pool) if value else False
-    print(f"  {var}={value or '(trống)'}  ->  {'✅ có thật' if ok else '⚠️ KHÔNG thấy trong danh sách trên'}")
+    verdict = "✅ có thật" if ok else "⚠️ KHÔNG thấy trong danh sách trên"
+    print(f"  {var}={value or '(trống)'}  ->  {verdict}")

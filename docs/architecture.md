@@ -56,14 +56,14 @@ Route = Literal["policy_agent", "order_agent", "action_agent", "finish"]
 
 
 class Citation(TypedDict):
-    source: str      # "returns.md"
-    chunk_id: str    # "returns.md#3"
+    source: str  # "returns.md"
+    chunk_id: str  # "returns.md#3"
 
 
 class PendingAction(TypedDict):
-    tool: str                 # "cancel_order"
-    args: dict[str, Any]      # {"order_id": 1042}
-    description: str          # human-readable, shown to the user for approval
+    tool: str  # "cancel_order"
+    args: dict[str, Any]  # {"order_id": 1042}
+    description: str  # human-readable, shown to the user for approval
 
 
 class AgentState(TypedDict):
@@ -121,7 +121,7 @@ builder.add_node("action_agent", action_agent_node)
 builder.add_edge(START, "supervisor")
 builder.add_conditional_edges(
     "supervisor",
-    route_from_supervisor,          # pure function of state, no LLM call
+    route_from_supervisor,  # pure function of state, no LLM call
     {
         "policy_agent": "policy_agent",
         "order_agent": "order_agent",
@@ -185,8 +185,8 @@ src/tools/write_tools.py    cancel_order, create_ticket
 Separate modules, and no module exports a combined list. Binding is explicit per agent:
 
 ```python
-policy_agent_llm = llm                                   # no tools; retrieval is a plain call
-order_agent_llm  = llm.bind_tools(READ_TOOLS)
+policy_agent_llm = llm  # no tools; retrieval is a plain call
+order_agent_llm = llm.bind_tools(READ_TOOLS)
 action_agent_llm = llm.bind_tools(WRITE_TOOLS)
 ```
 
@@ -209,12 +209,14 @@ from langgraph.types import interrupt
 
 
 def action_agent_node(state: AgentState) -> dict:
-    call = pick_write_tool(state)                  # LLM decides tool + args
-    approved = interrupt({                         # graph pauses here; state is checkpointed
-        "tool": call.name,
-        "args": call.args,
-        "description": describe(call),
-    })
+    call = pick_write_tool(state)  # LLM decides tool + args
+    approved = interrupt(
+        {  # graph pauses here; state is checkpointed
+            "tool": call.name,
+            "args": call.args,
+            "description": describe(call),
+        }
+    )
     if not approved:
         return {"messages": [AIMessage("Cancelled — nothing was changed.")], "step_count": 1}
     result = WRITE_TOOLS_BY_NAME[call.name].invoke(call.args)

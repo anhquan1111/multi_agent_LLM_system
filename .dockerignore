@@ -1,0 +1,26 @@
+# Keep the build context small and never ship secrets into an image.
+.env
+.env.*
+!.env.example
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+.git/
+.github/
+tests/
+docs/
+data/chroma/
+data/*.db
+checkpoints/
+*.log
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
