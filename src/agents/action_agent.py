@@ -69,6 +69,10 @@ def propose_action_node(state: AgentState, llm: BaseChatModel | None = None) -> 
             "last_agent_output": text,
         }
 
+    # One write per turn, deliberately — unlike the read agent, which loops over every tool
+    # call the model makes. Approval is a single yes/no, so batching several writes behind
+    # one click would ask the customer to approve things individually invisible to them.
+    # Extra proposals are dropped; the customer can ask again for the next change.
     call = calls[0]
     args = dict(call["args"])
     args["customer_id"] = customer_id  # from state, never from the model
