@@ -8,7 +8,24 @@ Multi-agent e-commerce support assistant. A supervisor routes each question to o
 specialists: `policy_agent` (RAG over policy docs), `order_agent` (read-only SQLite lookups), and
 `action_agent` (the only component allowed to write, gated behind human confirmation).
 
-Full spec: `docs/spec.md`. Do not expand scope beyond it without asking.
+Full spec: `docs/spec.md`. Architecture and state schema: `docs/architecture.md`.
+Do not expand scope beyond the spec without asking.
+
+## Current status (14/08/2026)
+
+Steps 0–3 are done. Walking skeleton is deployed and reachable:
+**https://multi-agent-llm-system.onrender.com** (Render free tier — sleeps after 15 min,
+first request takes ~50s; auto-deploys on every push to `master`).
+
+Working: `GET /` → redirect to docs, `GET /health`, `POST /chat` (one node, hardcoded answer),
+`AgentState` with reducers, Dockerfile (runs as UID 1000, reads `$PORT`), 10 passing tests.
+
+**No LLM call exists anywhere in `src/` yet.** The key is configured and verified to reach the
+container, but nothing uses it.
+
+Next — step 4 (RAG): `scripts/seed_data.py` → `src/rag/` (two-stage chunking, embeddings, Chroma)
+→ `scripts/ingest.py` → replace `responder_node` with `policy_agent`. Then step 5 (supervisor +
+order/action agents + guardrails), step 6 (tests + CI), step 7 (README, demo, polish).
 
 ## Stack (verified 13/08/2026, do not guess these)
 
