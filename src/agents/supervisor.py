@@ -17,9 +17,7 @@ from src.agents.messages import transcript
 from src.agents.state import AgentState, Route
 from src.config import settings
 
-STUCK_MESSAGE = (
-    "I am not making progress on this request. Please rephrase it, or contact support."
-)
+STUCK_MESSAGE = "I am not making progress on this request. Please rephrase it, or contact support."
 CAP_MESSAGE = (
     "This request needed more steps than I am allowed to take. "
     "Please ask a narrower question, or contact support."

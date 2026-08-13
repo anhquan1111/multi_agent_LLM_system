@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked --extra dev
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      # The runner has no GOOGLE_API_KEY, and it must not need one: every test mocks the
+      # model and retrieval. `-m "not live"` skips the handful that would reach the network.
+      - name: Test
+        run: uv run pytest -m "not live" -q
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Building proves the image still assembles. It is not started here: without a key it
+      # could only answer /health, which the test job already covers.
+      - name: Build image
+        run: docker build -t masys .

@@ -72,8 +72,7 @@ def create_ticket(order_id: int, customer_id: str, reason: str) -> str:
         (order_id, customer_id, reason, str(date.today())),
     )
     return (
-        f"Support ticket opened for order {order_id}. "
-        "Support will reply within two business days."
+        f"Support ticket opened for order {order_id}. Support will reply within two business days."
     )
 
 

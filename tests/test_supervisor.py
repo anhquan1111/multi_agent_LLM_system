@@ -74,9 +74,7 @@ def test_transcript_keeps_answers_but_drops_tool_plumbing():
             HumanMessage("status of order 1006?"),
             AIMessage(
                 content="",
-                tool_calls=[
-                    {"name": "get_order", "args": {}, "id": "c1", "type": "tool_call"}
-                ],
+                tool_calls=[{"name": "get_order", "args": {}, "id": "c1", "type": "tool_call"}],
             ),
             ToolMessage(content="{'status': 'processing'}", tool_call_id="c1"),
             AIMessage("Order 1006 is processing."),
