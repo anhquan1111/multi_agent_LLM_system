@@ -15,10 +15,9 @@ and route each one to a specialist that is actually equipped to answer it.
 The read/write split is structural, not a prompt instruction: read-only agents are never given the
 write tools, so no amount of prompt injection reaches them.
 
-> **Status: step 4 of 7 — policy RAG is live.**
->
-> Original status note: The deployment path is proven end to end — FastAPI, Docker and a
-> live URL — but the routing graph, retrieval and tools are not wired up yet. See the roadmap below.
+> **Status: policy RAG is live.** Ask a policy question and you get a real answer with the source
+> documents it came from. Supervisor routing, order lookups and the write agent are next — see the
+> roadmap below.
 >
 > The demo runs on a free instance that sleeps after 15 minutes of inactivity; the first request
 > may take ~50 seconds to wake it. Hit `/health` first.
