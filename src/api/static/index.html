@@ -6,88 +6,169 @@
 <title>Shop Support Assistant</title>
 <style>
   :root {
-    --bg: #f6f7f9; --panel: #ffffff; --line: #e3e6ea; --text: #1b1f24;
-    --muted: #6b737c; --accent: #2c6fdb; --warn-bg: #fff8e6; --warn-line: #e0b64a;
-    --chip: #eef1f5;
+    --bg:#f4f6f9; --panel:#fff; --raised:#fbfcfd; --line:#e2e7ee; --line-soft:#eef1f6;
+    --text:#141a21; --muted:#69737f; --dim:#8b95a1;
+    --brand:#2563eb; --brand-soft:#e8f0fe;
+    --policy:#2563eb; --policy-bg:#e8f0fe;
+    --order:#0f8a5f; --order-bg:#e3f6ee;
+    --action:#b25e09; --action-bg:#fdf1e0;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 4px 12px rgba(16,24,40,.06);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #14171a; --panel: #1c2024; --line: #2c3238; --text: #e8eaed;
-      --muted: #9aa3ac; --accent: #5b9dff; --warn-bg: #2c2415; --warn-line: #8a6d24;
-      --chip: #262b31;
+      --bg:#0f1216; --panel:#171b21; --raised:#1c222a; --line:#28303a; --line-soft:#222932;
+      --text:#e9edf2; --muted:#98a3b0; --dim:#7a8593;
+      --brand:#5b9dff; --brand-soft:#16233a;
+      --policy:#7fb0ff; --policy-bg:#16233a;
+      --order:#5ad19b; --order-bg:#12291f;
+      --action:#e6a355; --action-bg:#2b2013;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
     }
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif;
-    display: flex; justify-content: center; padding: 24px 16px;
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex; justify-content:center; padding:32px 18px 56px;
   }
-  main { width: 100%; max-width: 720px; }
-  header { margin-bottom: 16px; }
-  h1 { font-size: 19px; margin: 0 0 4px; }
-  .sub { color: var(--muted); font-size: 13px; }
-  .sub a { color: var(--accent); }
+  main{width:100%; max-width:780px}
 
-  .who { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 13px; }
-  .who select {
-    background: var(--panel); color: var(--text); border: 1px solid var(--line);
-    border-radius: 7px; padding: 5px 8px; font: inherit; font-size: 13px;
+  /* ---------- header ---------- */
+  header{margin-bottom:22px}
+  .title{display:flex; align-items:center; gap:11px; margin-bottom:7px}
+  .title h1{font-size:21px; font-weight:650; letter-spacing:-.2px; margin:0}
+  .mark{
+    width:32px; height:32px; border-radius:9px; flex:none;
+    background:linear-gradient(135deg,var(--brand),#7c3aed);
+    display:grid; place-items:center; color:#fff; font-size:15px; font-weight:700;
   }
-  .who span { color: var(--muted); }
+  .tagline{color:var(--muted); font-size:14px; margin:0 0 14px}
+  .tagline a{color:var(--brand); text-decoration:none; border-bottom:1px solid transparent}
+  .tagline a:hover{border-bottom-color:currentColor}
 
-  #log {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 16px; min-height: 300px; display: flex; flex-direction: column; gap: 14px;
+  .flow{
+    display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+    font-size:12.5px; color:var(--muted); padding:9px 12px;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
   }
-  .turn { display: flex; flex-direction: column; gap: 5px; }
-  .turn.me { align-items: flex-end; }
-  .bubble {
-    max-width: 88%; padding: 9px 13px; border-radius: 12px;
-    border: 1px solid var(--line); white-space: pre-wrap; word-wrap: break-word;
-  }
-  .me .bubble { background: var(--accent); color: #fff; border-color: transparent; }
-  .meta { font-size: 12px; color: var(--muted); display: flex; gap: 7px; flex-wrap: wrap; }
-  .chip { background: var(--chip); border-radius: 20px; padding: 1px 9px; }
+  .flow b{color:var(--text); font-weight:600}
+  .flow .arw{color:var(--dim)}
 
-  .approve {
-    background: var(--warn-bg); border: 1px solid var(--warn-line);
-    border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+  /* ---------- identity ---------- */
+  .who{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin:16px 0 12px; font-size:13.5px; color:var(--muted);
   }
-  .approve p { margin: 0; font-size: 14px; }
-  .approve .row { display: flex; gap: 8px; }
-  button {
-    font: inherit; font-size: 14px; padding: 7px 15px; border-radius: 8px;
-    border: 1px solid var(--line); background: var(--panel); color: var(--text);
-    cursor: pointer;
+  .who select{
+    background:var(--panel); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:7px 10px; font:inherit; font-size:13.5px;
+    box-shadow:var(--shadow); cursor:pointer;
   }
-  button.primary { background: var(--accent); color: #fff; border-color: transparent; }
-  button:disabled { opacity: .5; cursor: default; }
 
-  form { display: flex; gap: 8px; margin-top: 14px; }
-  input[type=text] {
-    flex: 1; font: inherit; padding: 10px 13px; border-radius: 9px;
-    border: 1px solid var(--line); background: var(--panel); color: var(--text);
+  /* ---------- transcript ---------- */
+  #log{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:20px; min-height:340px; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; gap:18px;
   }
-  .hints { margin-top: 12px; display: flex; gap: 7px; flex-wrap: wrap; }
-  .hints button { font-size: 12.5px; padding: 5px 11px; color: var(--muted); }
+
+  .empty{margin:auto 0; text-align:left}
+  .empty h2{font-size:15px; font-weight:600; margin:0 0 4px}
+  .empty p{color:var(--muted); font-size:13.5px; margin:0 0 16px}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(228px,1fr)); gap:10px}
+  .card{
+    text-align:left; background:var(--raised); border:1px solid var(--line);
+    border-radius:11px; padding:12px 13px; cursor:pointer; font:inherit;
+    color:var(--text); transition:border-color .12s, transform .12s;
+  }
+  .card:hover{border-color:var(--brand); transform:translateY(-1px)}
+  .card .lead{display:block; font-size:13.5px; font-weight:550; margin-bottom:3px}
+  .card .why{display:block; font-size:12px; color:var(--muted)}
+
+  .turn{display:flex; flex-direction:column; gap:7px; max-width:100%}
+  .turn.me{align-items:flex-end}
+  .bubble{
+    max-width:86%; padding:11px 14px; border-radius:13px; font-size:14.5px;
+    white-space:pre-wrap; overflow-wrap:anywhere;
+    background:var(--raised); border:1px solid var(--line-soft);
+  }
+  .me .bubble{background:var(--brand); color:#fff; border-color:transparent}
+  .thinking{color:var(--muted); font-style:italic}
+
+  .meta{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:11.5px}
+  .badge{
+    padding:2px 9px; border-radius:20px; font-weight:600; letter-spacing:.2px;
+    background:var(--line-soft); color:var(--muted);
+  }
+  .badge.policy{background:var(--policy-bg); color:var(--policy)}
+  .badge.order{background:var(--order-bg); color:var(--order)}
+  .badge.action{background:var(--action-bg); color:var(--action)}
+  .src{color:var(--muted); background:var(--line-soft); padding:2px 9px; border-radius:20px}
+  .hint{color:var(--dim); font-size:12.5px}
+
+  /* ---------- approval ---------- */
+  .approve{
+    border:1px solid var(--action); border-radius:12px; overflow:hidden;
+    background:var(--action-bg);
+  }
+  .approve .head{
+    display:flex; align-items:center; gap:8px; padding:10px 14px;
+    font-size:12px; font-weight:700; letter-spacing:.4px; color:var(--action);
+    border-bottom:1px solid var(--action);
+  }
+  .approve .body{padding:13px 14px; font-size:14.5px}
+  .approve .body p{margin:0 0 4px}
+  .approve .body small{color:var(--muted); font-size:12.5px}
+  .approve .row{display:flex; gap:9px; padding:0 14px 14px}
+
+  button{
+    font:inherit; font-size:14px; padding:8px 16px; border-radius:9px;
+    border:1px solid var(--line); background:var(--panel); color:var(--text); cursor:pointer;
+  }
+  button:hover{border-color:var(--muted)}
+  button.primary{background:var(--brand); color:#fff; border-color:transparent}
+  button.primary:hover{filter:brightness(1.07)}
+  button:disabled{opacity:.45; cursor:default}
+
+  /* ---------- composer ---------- */
+  form{display:flex; gap:9px; margin-top:14px}
+  input[type=text]{
+    flex:1; font:inherit; font-size:15px; padding:12px 15px; border-radius:11px;
+    border:1px solid var(--line); background:var(--panel); color:var(--text);
+    box-shadow:var(--shadow);
+  }
+  input[type=text]:focus{outline:2px solid var(--brand-soft); border-color:var(--brand)}
+  form button{padding:12px 20px}
+
+  .foot{margin-top:14px; font-size:12.5px; color:var(--dim)}
 </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>Shop Support Assistant</h1>
-    <div class="sub">
-      A supervisor routes each question to a policy, order, or write agent.
-      Writes pause for your approval. &middot; <a href="/docs">API docs</a>
+    <div class="title">
+      <div class="mark">S</div>
+      <h1>Shop Support Assistant</h1>
+    </div>
+    <p class="tagline">
+      Four agents, one conversation. Writes stop for your approval.
+      &nbsp;·&nbsp; <a href="/docs">API docs</a> &nbsp;·&nbsp; <a href="/health">health</a>
+    </p>
+    <div class="flow">
+      <b>supervisor</b> <span class="arw">picks one of</span>
+      <span class="badge policy">policy</span> <span class="arw">·</span>
+      <span class="badge order">order</span> <span class="arw">·</span>
+      <span class="badge action">write</span>
+      <span class="arw">— then answers, or asks again if something is still missing</span>
     </div>
   </header>
 
   <div class="who">
     <span>Signed in as</span>
     <select id="customer">
-      <option value="C026">C026 — owns order 1001 (delivered)</option>
-      <option value="C015">C015 — owns order 1006 (processing)</option>
+      <option value="C026">C026 — owns order 1001, delivered</option>
+      <option value="C015">C015 — owns order 1006, still processing</option>
       <option value="C001">C001 — owns neither, to show the access check</option>
     </select>
   </div>
@@ -95,32 +176,33 @@
   <div id="log"></div>
 
   <form id="ask">
-    <input id="msg" type="text" autocomplete="off" placeholder="Ask about a policy or your orders…">
+    <input id="msg" type="text" autocomplete="off"
+           placeholder="Ask about a policy, or about your orders…">
     <button class="primary" type="submit">Send</button>
   </form>
 
-  <div class="hints">
-    <button data-q="How long do I have to return a damaged item?">policy question</button>
-    <button data-q="What is the status of order 1001 and how much did it cost?">order lookup</button>
-    <button data-q="Please cancel order 1006">write, needs approval</button>
-    <button data-q="What is the status of order 1001, and what is the return policy?">two agents</button>
-  </div>
+  <p class="foot">
+    Running on a free instance that sleeps when idle — the first request may take ~50 seconds.
+  </p>
 </main>
 
 <script>
+const EXAMPLES = [
+  { lead: "How long do I have to return a damaged item?",
+    why: "Policy question — answered from the shop documents, with the source shown" },
+  { lead: "What is the status of order 1001 and how much did it cost?",
+    why: "Order lookup — a real SQL query, never a guess from retrieval" },
+  { lead: "Please cancel order 1006",
+    why: "A change — it will describe it and wait for you to approve" },
+  { lead: "What is the status of order 1001, and what is the return policy?",
+    why: "Two questions in one — two agents answer, both halves come back" },
+];
+
 const log = document.getElementById("log");
 const form = document.getElementById("ask");
 const input = document.getElementById("msg");
 const customer = document.getElementById("customer");
 let threadId = null;
-
-// Changing who you are starts a new conversation: the thread carries the previous
-// customer's history, and the whole point of the selector is to show the access check.
-customer.addEventListener("change", () => {
-  threadId = null;
-  log.innerHTML = "";
-  note(`Now signed in as ${customer.value}. New conversation.`);
-});
 
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -129,67 +211,97 @@ function el(tag, cls, text) {
   return n;
 }
 
-function note(text) {
-  const t = el("div", "turn");
-  t.append(el("div", "meta", text));
-  log.append(t);
-  log.scrollIntoView({ block: "end" });
+function showEmpty() {
+  log.innerHTML = "";
+  const wrap = el("div", "empty");
+  wrap.append(el("h2", null, "Try one of these"));
+  wrap.append(el("p", null, "Or type your own question below. Each answer shows which agent handled it."));
+  const cards = el("div", "cards");
+  EXAMPLES.forEach((ex) => {
+    const b = el("button", "card");
+    b.append(el("span", "lead", ex.lead), el("span", "why", ex.why));
+    b.onclick = () => ask(ex.lead);
+    cards.append(b);
+  });
+  wrap.append(cards);
+  log.append(wrap);
 }
 
-function say(who, text, meta) {
+function clearEmpty() {
+  const e = log.querySelector(".empty");
+  if (e) e.remove();
+}
+
+function scroll() { log.lastElementChild?.scrollIntoView({ block: "nearest" }); }
+
+function say(who, text, extra) {
+  clearEmpty();
   const t = el("div", "turn" + (who === "me" ? " me" : ""));
-  t.append(el("div", "bubble", text));
-  if (meta && meta.length) {
-    const m = el("div", "meta");
-    meta.forEach((x) => m.append(el("span", "chip", x)));
-    t.append(m);
-  }
+  t.append(el("div", "bubble" + (extra === "thinking" ? " bubble thinking" : ""), text));
   log.append(t);
-  log.scrollIntoView({ block: "end" });
+  scroll();
   return t;
+}
+
+function note(text) {
+  clearEmpty();
+  const t = el("div", "turn");
+  t.append(el("div", "hint", text));
+  log.append(t);
+  scroll();
+}
+
+// The badge is the point of the whole architecture: you can see which specialist answered.
+const BADGE = { policy_agent: ["policy", "policy"], order_agent: ["order", "orders"],
+                action_agent: ["action", "write"] };
+
+function answerBlock(data) {
+  const t = el("div", "turn");
+  t.append(el("div", "bubble", data.answer || "(no answer)"));
+  const m = el("div", "meta");
+  const b = BADGE[data.route];
+  if (b) m.append(el("span", `badge ${b[0]}`, b[1]));
+  if (data.steps) m.append(el("span", "hint", `${data.steps} steps`));
+  (data.citations || []).forEach((c) => m.append(el("span", "src", c.source)));
+  if (m.childNodes.length) t.append(m);
+  log.append(t);
+  scroll();
 }
 
 async function post(path, body) {
   const r = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
 
 function render(data) {
-  const meta = [];
-  if (data.route) meta.push(data.route);
-  if (data.steps) meta.push(`${data.steps} steps`);
-  (data.citations || []).forEach((c) => meta.push(`📄 ${c.source}`));
-  say("bot", data.answer || "(no answer)", meta);
-
+  answerBlock(data);
   threadId = data.thread_id;
   if (data.pending_action) approvalPanel(data.pending_action);
 }
 
-// The write flow is the reason this page exists: nothing has been changed at this point,
-// and /confirm is what executes it.
+// Nothing has been written at this point. /confirm is what executes it.
 function approvalPanel(action) {
   const box = el("div", "approve");
-  box.append(el("p", null, action.description));
+  const head = el("div", "head", "⚠  WAITING FOR YOUR APPROVAL");
+  const body = el("div", "body");
+  body.append(el("p", null, action.description));
+  body.append(el("small", null, `${action.tool} · nothing has been changed yet`));
   const row = el("div", "row");
   const yes = el("button", "primary", "Confirm");
   const no = el("button", null, "Cancel");
   row.append(yes, no);
-  box.append(row);
+  box.append(head, body, row);
   log.append(box);
-  log.scrollIntoView({ block: "end" });
+  scroll();
 
   const decide = async (approved) => {
     yes.disabled = no.disabled = true;
-    try {
-      render(await post("/confirm", { thread_id: threadId, approved }));
-    } catch (e) {
-      note(`Could not complete that: ${e.message}`);
-    }
+    try { render(await post("/confirm", { thread_id: threadId, approved })); }
+    catch (e) { note(`Could not complete that (${e.message}).`); }
     box.remove();
   };
   yes.onclick = () => decide(true);
@@ -199,20 +311,26 @@ function approvalPanel(action) {
 async function ask(text) {
   say("me", text);
   input.value = "";
-  const waiting = say("bot", "…");
+  const waiting = say("bot", "thinking…", "thinking");
   try {
     const data = await post("/chat", {
-      message: text,
-      customer_id: customer.value,
-      thread_id: threadId,
+      message: text, customer_id: customer.value, thread_id: threadId,
     });
     waiting.remove();
     render(data);
   } catch (e) {
     waiting.remove();
-    note(`Request failed: ${e.message}`);
+    note(`Request failed (${e.message}). If the instance was asleep, try once more.`);
   }
 }
+
+// Switching identity starts a new conversation: the thread carries the previous customer's
+// history, and seeing the access check work is the whole point of the selector.
+customer.addEventListener("change", () => {
+  threadId = null;
+  showEmpty();
+  note(`Signed in as ${customer.value}. New conversation.`);
+});
 
 form.onsubmit = (e) => {
   e.preventDefault();
@@ -220,11 +338,7 @@ form.onsubmit = (e) => {
   if (text) ask(text);
 };
 
-document.querySelectorAll(".hints button").forEach((b) => {
-  b.onclick = () => ask(b.dataset.q);
-});
-
-note("The demo runs on a free instance. The first request may take ~50s to wake it.");
+showEmpty();
 </script>
 </body>
 </html>
