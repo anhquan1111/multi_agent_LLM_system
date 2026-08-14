@@ -11,7 +11,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.types import Command
 
@@ -115,10 +115,17 @@ def _to_response(result: dict[str, Any], thread_id: str) -> ChatResponse:
     )
 
 
+UI_PAGE = Path(__file__).parent / "static" / "index.html"
+
+
 @app.get("/", include_in_schema=False)
-def root() -> RedirectResponse:
-    """Send the bare URL somewhere useful. Anyone opening the deployed link lands here."""
-    return RedirectResponse(url="/docs")
+def root() -> FileResponse:
+    """The demo page. One static file, no build step and no runtime dependency.
+
+    Swagger at /docs shows the API; this shows the product. The approval flow is the reason
+    it exists — on /docs it looks like copying an id between two endpoints.
+    """
+    return FileResponse(UI_PAGE)
 
 
 @app.get("/health", response_model=HealthResponse)

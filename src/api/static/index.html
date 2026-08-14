@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop Support Assistant</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --line: #e3e6ea; --text: #1b1f24;
+    --muted: #6b737c; --accent: #2c6fdb; --warn-bg: #fff8e6; --warn-line: #e0b64a;
+    --chip: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a; --panel: #1c2024; --line: #2c3238; --text: #e8eaed;
+      --muted: #9aa3ac; --accent: #5b9dff; --warn-bg: #2c2415; --warn-line: #8a6d24;
+      --chip: #262b31;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; justify-content: center; padding: 24px 16px;
+  }
+  main { width: 100%; max-width: 720px; }
+  header { margin-bottom: 16px; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .sub a { color: var(--accent); }
+
+  .who { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 13px; }
+  .who select {
+    background: var(--panel); color: var(--text); border: 1px solid var(--line);
+    border-radius: 7px; padding: 5px 8px; font: inherit; font-size: 13px;
+  }
+  .who span { color: var(--muted); }
+
+  #log {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; min-height: 300px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .turn { display: flex; flex-direction: column; gap: 5px; }
+  .turn.me { align-items: flex-end; }
+  .bubble {
+    max-width: 88%; padding: 9px 13px; border-radius: 12px;
+    border: 1px solid var(--line); white-space: pre-wrap; word-wrap: break-word;
+  }
+  .me .bubble { background: var(--accent); color: #fff; border-color: transparent; }
+  .meta { font-size: 12px; color: var(--muted); display: flex; gap: 7px; flex-wrap: wrap; }
+  .chip { background: var(--chip); border-radius: 20px; padding: 1px 9px; }
+
+  .approve {
+    background: var(--warn-bg); border: 1px solid var(--warn-line);
+    border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .approve p { margin: 0; font-size: 14px; }
+  .approve .row { display: flex; gap: 8px; }
+  button {
+    font: inherit; font-size: 14px; padding: 7px 15px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  button:disabled { opacity: .5; cursor: default; }
+
+  form { display: flex; gap: 8px; margin-top: 14px; }
+  input[type=text] {
+    flex: 1; font: inherit; padding: 10px 13px; border-radius: 9px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--text);
+  }
+  .hints { margin-top: 12px; display: flex; gap: 7px; flex-wrap: wrap; }
+  .hints button { font-size: 12.5px; padding: 5px 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Shop Support Assistant</h1>
+    <div class="sub">
+      A supervisor routes each question to a policy, order, or write agent.
+      Writes pause for your approval. &middot; <a href="/docs">API docs</a>
+    </div>
+  </header>
+
+  <div class="who">
+    <span>Signed in as</span>
+    <select id="customer">
+      <option value="C026">C026 — owns order 1001 (delivered)</option>
+      <option value="C015">C015 — owns order 1006 (processing)</option>
+      <option value="C001">C001 — owns neither, to show the access check</option>
+    </select>
+  </div>
+
+  <div id="log"></div>
+
+  <form id="ask">
+    <input id="msg" type="text" autocomplete="off" placeholder="Ask about a policy or your orders…">
+    <button class="primary" type="submit">Send</button>
+  </form>
+
+  <div class="hints">
+    <button data-q="How long do I have to return a damaged item?">policy question</button>
+    <button data-q="What is the status of order 1001 and how much did it cost?">order lookup</button>
+    <button data-q="Please cancel order 1006">write, needs approval</button>
+    <button data-q="What is the status of order 1001, and what is the return policy?">two agents</button>
+  </div>
+</main>
+
+<script>
+const log = document.getElementById("log");
+const form = document.getElementById("ask");
+const input = document.getElementById("msg");
+const customer = document.getElementById("customer");
+let threadId = null;
+
+// Changing who you are starts a new conversation: the thread carries the previous
+// customer's history, and the whole point of the selector is to show the access check.
+customer.addEventListener("change", () => {
+  threadId = null;
+  log.innerHTML = "";
+  note(`Now signed in as ${customer.value}. New conversation.`);
+});
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+function note(text) {
+  const t = el("div", "turn");
+  t.append(el("div", "meta", text));
+  log.append(t);
+  log.scrollIntoView({ block: "end" });
+}
+
+function say(who, text, meta) {
+  const t = el("div", "turn" + (who === "me" ? " me" : ""));
+  t.append(el("div", "bubble", text));
+  if (meta && meta.length) {
+    const m = el("div", "meta");
+    meta.forEach((x) => m.append(el("span", "chip", x)));
+    t.append(m);
+  }
+  log.append(t);
+  log.scrollIntoView({ block: "end" });
+  return t;
+}
+
+async function post(path, body) {
+  const r = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+function render(data) {
+  const meta = [];
+  if (data.route) meta.push(data.route);
+  if (data.steps) meta.push(`${data.steps} steps`);
+  (data.citations || []).forEach((c) => meta.push(`📄 ${c.source}`));
+  say("bot", data.answer || "(no answer)", meta);
+
+  threadId = data.thread_id;
+  if (data.pending_action) approvalPanel(data.pending_action);
+}
+
+// The write flow is the reason this page exists: nothing has been changed at this point,
+// and /confirm is what executes it.
+function approvalPanel(action) {
+  const box = el("div", "approve");
+  box.append(el("p", null, action.description));
+  const row = el("div", "row");
+  const yes = el("button", "primary", "Confirm");
+  const no = el("button", null, "Cancel");
+  row.append(yes, no);
+  box.append(row);
+  log.append(box);
+  log.scrollIntoView({ block: "end" });
+
+  const decide = async (approved) => {
+    yes.disabled = no.disabled = true;
+    try {
+      render(await post("/confirm", { thread_id: threadId, approved }));
+    } catch (e) {
+      note(`Could not complete that: ${e.message}`);
+    }
+    box.remove();
+  };
+  yes.onclick = () => decide(true);
+  no.onclick = () => decide(false);
+}
+
+async function ask(text) {
+  say("me", text);
+  input.value = "";
+  const waiting = say("bot", "…");
+  try {
+    const data = await post("/chat", {
+      message: text,
+      customer_id: customer.value,
+      thread_id: threadId,
+    });
+    waiting.remove();
+    render(data);
+  } catch (e) {
+    waiting.remove();
+    note(`Request failed: ${e.message}`);
+  }
+}
+
+form.onsubmit = (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (text) ask(text);
+};
+
+document.querySelectorAll(".hints button").forEach((b) => {
+  b.onclick = () => ask(b.dataset.q);
+});
+
+note("The demo runs on a free instance. The first request may take ~50s to wake it.");
+</script>
+</body>
+</html>

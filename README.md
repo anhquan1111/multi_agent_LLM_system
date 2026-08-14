@@ -21,8 +21,11 @@ write tools, so no amount of prompt injection reaches them.
 > agent, a read-only order agent, or a write agent that pauses for your confirmation before it
 > changes anything.
 >
+> Open the demo link and try the four suggested questions. The write flow is the one worth
+> watching: the assistant describes what it is about to change and waits for you to approve it.
+>
 > The demo runs on a free instance that sleeps after 15 minutes of inactivity; the first request
-> may take ~50 seconds to wake it. Hit `/health` first.
+> may take ~50 seconds to wake it.
 
 ## Architecture
 
@@ -59,7 +62,8 @@ SQLite · FastAPI · Docker · GitHub Actions
 | `GET` | `/health` | Liveness plus whether the API key reached the process (never its value) |
 | `POST` | `/chat` | Ask a question; returns the answer, route, citations and any pending action |
 | `POST` | `/confirm` | Approve or decline a pending write, resuming the paused run |
-| `GET` | `/docs` | Interactive Swagger UI (the bare URL redirects here) |
+| `GET` | `/` | Demo page — one static file, no build step, no runtime dependency |
+| `GET` | `/docs` | Interactive Swagger UI |
 
 ## Run locally
 
@@ -114,6 +118,7 @@ day and covers the headline metric. Results are appended per case, so any run ca
 - [x] 20-question gold evaluation set with a resumable scoring script
 - [x] CI on GitHub Actions
 - [x] Optional LangSmith tracing
+- [x] Demo page with the approval flow
 
 ## Limitations
 

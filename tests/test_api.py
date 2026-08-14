@@ -3,14 +3,6 @@
 import pytest
 
 
-def test_root_redirects_to_docs(client):
-    """A bare URL is what people paste into a browser; it must not 404."""
-    resp = client.get("/", follow_redirects=False)
-
-    assert resp.status_code in (307, 308)
-    assert resp.headers["location"] == "/docs"
-
-
 def test_health_reports_ok(client):
     resp = client.get("/health")
 
@@ -127,3 +119,21 @@ def test_the_default_model_matches_the_documented_one():
     from src.config import Settings
 
     assert Settings.model_fields["llm_model"].default == "gemini-3.1-flash-lite"
+
+
+def test_the_root_page_is_served(client):
+    """The deployed link lands on the demo page, not on a 404 or a redirect."""
+    resp = client.get("/")
+
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "Shop Support Assistant" in resp.text
+
+
+def test_the_page_has_no_external_dependencies(client):
+    """One self-contained file: it must work without a CDN, and offline."""
+    body = client.get("/").text
+
+    assert "http://" not in body
+    assert "https://" not in body
+    assert "<script src=" not in body
