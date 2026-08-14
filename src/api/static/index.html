@@ -187,16 +187,54 @@
 </main>
 
 <script>
-const EXAMPLES = [
-  { lead: "How long do I have to return a damaged item?",
-    why: "Policy question — answered from the shop documents, with the source shown" },
-  { lead: "What is the status of order 1001 and how much did it cost?",
-    why: "Order lookup — a real SQL query, never a guess from retrieval" },
-  { lead: "Please cancel order 1006",
-    why: "A change — it will describe it and wait for you to approve" },
-  { lead: "What is the status of order 1001, and what is the return policy?",
-    why: "Two questions in one — two agents answer, both halves come back" },
-];
+// Examples adapt to who is signed in: an access-check question only demonstrates anything if
+// the order really belongs to somebody else, and a cancellation only pauses for approval if
+// the order is still processing. Openings are deliberately all different — six cards that
+// start the same way read as one repeated question.
+const EXAMPLES = {
+  C026: [
+    { q: "How long do I have to return a damaged item?",
+      why: "Policy — answered from the shop documents, with the source shown" },
+    { q: "I'm a Gold member — do I pay for return shipping?",
+      why: "Policy across two documents: membership tiers and returns" },
+    { q: "List my recent orders",
+      why: "Your own records, from SQL — filtered to you on the server" },
+    { q: "Is order 1006 mine?",
+      why: "Access check — it exists, but belongs to C015, so you get nothing" },
+    { q: "Cancel order 1001",
+      why: "The business rule: a delivered order can no longer be cancelled" },
+    { q: "Has order 1001 been delivered, and what is the return policy?",
+      why: "Two questions in one — two agents answer, both halves come back" },
+  ],
+  C015: [
+    { q: "How long do I have to return a damaged item?",
+      why: "Policy — answered from the shop documents, with the source shown" },
+    { q: "Does the warranty cover a cracked screen?",
+      why: "Policy — the answer is no, and it says so rather than hedging" },
+    { q: "List my recent orders",
+      why: "Your own records, from SQL — filtered to you on the server" },
+    { q: "Is order 1001 mine?",
+      why: "Access check — it exists, but belongs to C026, so you get nothing" },
+    { q: "Cancel order 1006",
+      why: "A real change — it describes it and waits for you to approve" },
+    { q: "What is order 1006 costing me, and can I still cancel it?",
+      why: "Two questions in one — two agents answer, both halves come back" },
+  ],
+  C001: [
+    { q: "How long do I have to return a damaged item?",
+      why: "Policy — answered from the shop documents, with the source shown" },
+    { q: "How much does express shipping cost?",
+      why: "Policy — a figure taken straight from the shipping document" },
+    { q: "List my recent orders",
+      why: "This account has none, and it says so instead of inventing any" },
+    { q: "Is order 1001 mine?",
+      why: "Access check — it exists, but belongs to C026, so you get nothing" },
+    { q: "Cancel order 1006",
+      why: "Not yours either — it is refused before you are asked to approve anything" },
+    { q: "What is the capital of France?",
+      why: "Out of scope — it declines instead of answering from general knowledge" },
+  ],
+};
 
 const log = document.getElementById("log");
 const form = document.getElementById("ask");
@@ -216,12 +254,12 @@ function showEmpty(lead) {
   if (lead) log.append(el("div", "hint", lead));
   const wrap = el("div", "empty");
   wrap.append(el("h2", null, "Try one of these"));
-  wrap.append(el("p", null, "Or type your own question below. Each answer shows which agent handled it."));
+  wrap.append(el("p", null, "Or type your own below. Every answer shows which agent handled it — and switching account changes what these ask about."));
   const cards = el("div", "cards");
-  EXAMPLES.forEach((ex) => {
+  (EXAMPLES[customer.value] || []).forEach((ex) => {
     const b = el("button", "card");
-    b.append(el("span", "lead", ex.lead), el("span", "why", ex.why));
-    b.onclick = () => ask(ex.lead);
+    b.append(el("span", "lead", ex.q), el("span", "why", ex.why));
+    b.onclick = () => ask(ex.q);
     cards.append(b);
   });
   wrap.append(cards);

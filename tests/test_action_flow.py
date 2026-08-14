@@ -154,3 +154,30 @@ def test_what_runs_is_what_was_shown(client, cancelling_llm, processing_order):
     assert shown["args"]["order_id"] == processing_order["id"]
     assert str(processing_order["id"]) in shown["description"]
     assert status_of(processing_order["id"]) == "cancelled"
+
+
+@pytest.mark.integration
+def test_a_write_on_someone_elses_order_never_asks_for_approval(client, monkeypatch, temp_db):
+    """Nothing could have been changed either way, but showing that panel is confusing."""
+    from tests.conftest import FakeLLM
+
+    order = db.query_all("SELECT id FROM orders ORDER BY id LIMIT 1", ())[0]
+    llm = FakeLLM(
+        route="action_agent",
+        answer="",
+        tool_calls=[
+            {
+                "name": "cancel_order",
+                "args": {"order_id": order["id"]},
+                "id": "c1",
+                "type": "tool_call",
+            }
+        ],
+    )
+    for target in ("src.agents.supervisor.get_llm", "src.agents.action_agent.get_llm"):
+        monkeypatch.setattr(target, lambda: llm)
+
+    body = client.post("/chat", json={"message": "cancel it", "customer_id": "C999"}).json()
+
+    assert body["pending_action"] is None
+    assert "could not find" in body["answer"].lower()

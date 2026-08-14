@@ -20,6 +20,7 @@ from langgraph.types import interrupt
 from src.agents.llm import get_llm, with_retry
 from src.agents.messages import last_user_question
 from src.agents.state import AgentState
+from src.tools.db import query_one
 from src.tools.write_tools import WRITE_TOOLS
 
 TOOLS_BY_NAME = {t.name: t for t in WRITE_TOOLS}
@@ -36,6 +37,7 @@ been made; the system reports the result after the customer confirms."""
 DECLINED = "Understood — I have not made any changes."
 NOTHING_TO_DO = "I could not identify a change to make. Could you say what you would like done?"
 LOST_PROPOSAL = "That request expired before it was confirmed. Please ask again."
+NOT_YOURS = "I could not find order {order_id} on your account, so there is nothing to change."
 
 
 def describe(tool_name: str, args: dict[str, Any]) -> str:
@@ -78,6 +80,20 @@ def propose_action_node(state: AgentState, llm: BaseChatModel | None = None) -> 
     args = dict(call["args"])
     args["customer_id"] = customer_id  # from state, never from the model
 
+    # Ownership is checked before proposing, not at execution. The write tools verify it too
+    # and nothing could have been changed either way, but asking someone to approve a
+    # cancellation of an order that is not theirs is a confusing thing to show them.
+    order_id = args.get("order_id")
+    if order_id is not None and not _owns(customer_id, order_id):
+        text = NOT_YOURS.format(order_id=order_id)
+        return {
+            "messages": [AIMessage(content=text)],
+            "route": "finish",
+            "visited": ["action_agent"],
+            "step_count": 1,
+            "last_agent_output": text,
+        }
+
     return {
         "pending_action": {
             "tool": call["name"],
@@ -87,6 +103,13 @@ def propose_action_node(state: AgentState, llm: BaseChatModel | None = None) -> 
         "visited": ["action_agent"],
         "step_count": 1,
     }
+
+
+def _owns(customer_id: str, order_id: int) -> bool:
+    return (
+        query_one("SELECT 1 FROM orders WHERE id = ? AND customer_id = ?", (order_id, customer_id))
+        is not None
+    )
 
 
 def confirm_action_node(state: AgentState) -> dict:
