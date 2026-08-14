@@ -4,6 +4,8 @@
 
 **▶ Live demo: https://multi-agent-llm-system.onrender.com**
 
+![A policy question answered with its source, then a cancellation held for approval](docs/demo.gif)
+
 A support assistant for an online shop, built on the observation that customers ask three
 fundamentally different kinds of question — and that answering all of them with one mechanism is
 how you end up with an assistant that confidently invents order totals.
