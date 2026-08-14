@@ -65,6 +65,7 @@ def propose_action_node(state: AgentState, llm: BaseChatModel | None = None) -> 
         return {
             "messages": [AIMessage(content=text)],
             "route": "finish",
+            "visited": ["action_agent"],
             "step_count": 1,
             "last_agent_output": text,
         }
@@ -83,6 +84,7 @@ def propose_action_node(state: AgentState, llm: BaseChatModel | None = None) -> 
             "args": args,
             "description": describe(call["name"], args),
         },
+        "visited": ["action_agent"],
         "step_count": 1,
     }
 

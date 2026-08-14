@@ -39,7 +39,11 @@ SYSTEM_PROMPT = """You route customer support requests to exactly one specialist
   what this shop's support can help with.
 
 Route to exactly one. If a request needs both a policy answer and an order lookup, pick the
-one that is still missing from the conversation so far."""
+one that is still missing from the conversation so far.
+
+An answer reporting that something was not found, or that a change is not allowed, IS a
+complete answer. Do not send the request back to the same specialist hoping for a different
+result."""
 
 
 class RoutingDecision(BaseModel):
@@ -101,7 +105,19 @@ def route_from_supervisor(state: AgentState) -> str:
         return "finish"
     if state.get("step_count", 0) >= settings.max_agent_steps:
         return "finish"
-    return state.get("route", "finish")
+
+    route = state.get("route", "finish")
+
+    # A specialist never needs a second turn on the same request: it already has everything
+    # it can use. Asking twice is what happened when order_agent reported "no such order" —
+    # the supervisor read that as a failure rather than an answer and kept retrying, four
+    # apologies deep, until the step cap. Stuck detection could not catch it because the
+    # wording differed each time. The prompt now says so too, but this does not rely on the
+    # model complying.
+    if route in state.get("visited", []):
+        return "finish"
+
+    return route
 
 
 def detect_stuck(state: AgentState, new_output: str) -> bool:

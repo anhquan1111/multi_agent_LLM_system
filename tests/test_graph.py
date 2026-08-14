@@ -3,12 +3,13 @@
 from langchain_core.messages import HumanMessage
 
 from src.agents.graph import build_graph
+from src.agents.state import new_turn
 
 
 def invoke(step_count: int = 0, message: str = "what is the return policy?") -> dict:
-    return build_graph().invoke(
-        {"messages": [HumanMessage(message)], "customer_id": "C007", "step_count": step_count}
-    )
+    state = new_turn(HumanMessage(message), "C007")
+    state["step_count"] = step_count
+    return build_graph().invoke(state)
 
 
 def test_graph_returns_an_answer():
@@ -60,13 +61,7 @@ def test_a_conversation_survives_more_than_three_turns(fake_llm):
     for turn in range(1, 6):
         fake_llm.routed = False
         result = graph.invoke(
-            {
-                "messages": [HumanMessage("what is the return policy?")],
-                "step_count": 0,
-                "citations": [],
-                "last_agent_output": "",
-                "error": None,
-            },
+            new_turn(HumanMessage("what is the return policy?")),
             config=config,
         )
         assert result.get("error") is None, f"turn {turn} hit the cap"
@@ -82,13 +77,7 @@ def test_citations_do_not_leak_between_turns(fake_llm):
     saver = SqliteSaver(sqlite3.connect(":memory:", check_same_thread=False))
     graph = build_graph(checkpointer=saver)
     config = {"configurable": {"thread_id": "same-thread"}}
-    turn = {
-        "messages": [HumanMessage("return policy?")],
-        "step_count": 0,
-        "citations": [],
-        "last_agent_output": "",
-        "error": None,
-    }
+    turn = new_turn(HumanMessage("return policy?"))
 
     first = graph.invoke(turn, config=config)
     fake_llm.routed = False  # let the stand-in route to a specialist again
@@ -107,13 +96,7 @@ def test_asking_the_same_question_twice_is_not_stuck(fake_llm):
     saver = SqliteSaver(sqlite3.connect(":memory:", check_same_thread=False))
     graph = build_graph(checkpointer=saver)
     config = {"configurable": {"thread_id": "repeat"}}
-    turn = {
-        "messages": [HumanMessage("return policy?")],
-        "step_count": 0,
-        "citations": [],
-        "last_agent_output": "",
-        "error": None,
-    }
+    turn = new_turn(HumanMessage("return policy?"))
 
     graph.invoke(turn, config=config)
     fake_llm.routed = False

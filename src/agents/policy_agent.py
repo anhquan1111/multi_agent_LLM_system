@@ -55,6 +55,7 @@ def policy_agent_node(state: AgentState, llm: BaseChatModel | None = None) -> di
         return {
             "messages": [AIMessage(content=NO_CONTEXT)],
             "route": "finish",
+            "visited": ["policy_agent"],
             "step_count": 1,
             "last_agent_output": NO_CONTEXT,
         }
@@ -82,6 +83,7 @@ def policy_agent_node(state: AgentState, llm: BaseChatModel | None = None) -> di
     result = {
         "messages": [AIMessage(content=answer)],
         "route": "finish",
+        "visited": ["policy_agent"],
         "step_count": 1,
         "last_agent_output": answer,
     }

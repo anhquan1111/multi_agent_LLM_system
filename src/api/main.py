@@ -16,6 +16,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.types import Command
 
 from src.agents.graph import build_graph, open_checkpointer
+from src.agents.state import new_turn
 from src.api.schemas import ChatRequest, ChatResponse, ConfirmRequest, HealthResponse
 from src.config import settings
 
@@ -136,18 +137,7 @@ def chat(request: ChatRequest) -> ChatResponse:
     thread_id = request.thread_id or str(uuid4())
 
     result = graph.invoke(
-        {
-            "messages": [HumanMessage(content=request.message)],
-            "customer_id": request.customer_id,
-            # Everything scoped to a single exchange is reset here. Left to persist, the
-            # step cap ended a conversation on its third message, sources from an old
-            # question came back attached to a new answer, and asking the same thing twice
-            # tripped stuck detection. See the reducers in src/agents/state.py.
-            "step_count": 0,
-            "citations": [],
-            "last_agent_output": "",
-            "error": None,
-        },
+        new_turn(HumanMessage(content=request.message), request.customer_id),
         config=_config(thread_id),
     )
     return _to_response(result, thread_id)

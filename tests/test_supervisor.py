@@ -116,3 +116,22 @@ def test_finishing_after_a_specialist_answered_adds_nothing(fake_llm):
     result = supervisor_node(state, llm=fake_llm)
 
     assert "messages" not in result
+
+
+def test_a_specialist_is_never_asked_twice_in_one_turn():
+    """order_agent reporting "no such order" is an answer, not a failure to retry.
+
+    Four apologies deep the run hit the step cap, and stuck detection could not catch it
+    because the model reworded the refusal every time. This guard does not depend on the model
+    reading the prompt.
+    """
+    state = {"route": "order_agent", "visited": ["order_agent"], "step_count": 2}
+
+    assert route_from_supervisor(state) == "finish"
+
+
+def test_a_different_specialist_is_still_allowed():
+    """A two-part question legitimately needs two different specialists."""
+    state = {"route": "policy_agent", "visited": ["action_agent"], "step_count": 2}
+
+    assert route_from_supervisor(state) == "policy_agent"

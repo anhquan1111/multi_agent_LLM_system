@@ -24,13 +24,13 @@ def count_steps(current: int, update: int) -> int:
     return 0 if update == 0 else current + update
 
 
-def collect_citations(current: list, update: list) -> list:
-    """Gather sources within one request, and start a fresh turn empty.
+def extend_or_reset(current: list, update: list) -> list:
+    """Gather items within one request, and start a fresh turn empty.
 
     Same reason as `count_steps`: with plain `operator.add` the sources of an earlier message
     were still attached to the next one, so a cancellation request came back citing
-    returns.md from three questions ago. A node with nothing to cite omits the field
-    entirely, so an explicit empty list means the API is opening a new turn.
+    returns.md from three questions ago. A node with nothing to add omits the field entirely,
+    so an explicit empty list means the API is opening a new turn.
     """
     return [] if update == [] else current + update
 
@@ -49,7 +49,8 @@ class PendingAction(TypedDict):
 class AgentState(TypedDict, total=False):
     # --- accumulated across nodes: reducer required ---
     messages: Annotated[list[AnyMessage], add_messages]
-    citations: Annotated[list[Citation], collect_citations]
+    citations: Annotated[list[Citation], extend_or_reset]
+    visited: Annotated[list[str], extend_or_reset]
     step_count: Annotated[int, count_steps]
 
     # --- latest value wins: deliberately no reducer ---
@@ -58,3 +59,22 @@ class AgentState(TypedDict, total=False):
     pending_action: PendingAction | None
     last_agent_output: str
     error: str | None
+
+
+def new_turn(message: AnyMessage, customer_id: str = "") -> AgentState:
+    """State for a fresh exchange, with every turn-scoped field cleared.
+
+    The checkpointer keeps state alive across messages on a thread, which is what makes
+    multi-turn work — and what silently broke four separate things when a field that belongs
+    to one exchange was left to accumulate. Adding another such field means adding it here,
+    once, rather than remembering to clear it at every call site.
+    """
+    return {
+        "messages": [message],
+        "customer_id": customer_id,
+        "step_count": 0,
+        "citations": [],
+        "visited": [],
+        "last_agent_output": "",
+        "error": None,
+    }

@@ -194,22 +194,29 @@ fills its arguments; it never authors SQL.
    `propose_action_node` (model call, writes `pending_action` to state) and
    `confirm_action_node` (interrupt, then executes the stored proposal). Do not merge them.
 
-11. **State scoped to one exchange must be reset explicitly on every turn.** The checkpointer
-   keeps state alive across messages on the same `thread_id`, which is what makes multi-turn
-   conversation work — and what silently broke three things: the step cap ended any
-   conversation on its third message, sources from an old question came back attached to a new
-   answer, and asking the same thing twice tripped stuck detection. `/chat` therefore resets
-   `step_count`, `citations`, `last_agent_output` and `error`. `operator.add` cannot express a
-   reset (passing 0 adds 0), hence the custom `count_steps` and `collect_citations` reducers.
+11. **State scoped to one exchange is reset in one place: `new_turn()` in `state.py`.** The
+   checkpointer keeps state alive across messages on a thread, which is what makes multi-turn
+   work — and what silently broke four separate things when a turn-scoped field was left to
+   accumulate: the step cap ended any conversation on its third message, sources from an old
+   question stayed attached to a new answer, repeating a question tripped stuck detection, and
+   a specialist that had already answered was asked again. Add a turn-scoped field to
+   `new_turn()`, never to the call sites. `operator.add` cannot express a reset (passing 0 adds
+   0), hence the custom `count_steps` and `extend_or_reset` reducers.
 
-12. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
+12. **A specialist is never routed to twice in one turn.** `route_from_supervisor` returns
+   `finish` when the chosen route is already in `visited`. An answer saying something was not
+   found is an answer; the supervisor read it as a failure and retried four times, reworded
+   each time so stuck detection could not catch it, until the step cap. The prompt says so as
+   well, but the guard does not depend on the model complying.
+
+13. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
    `127.0.0.1` inside a container makes the service unreachable from outside while still working
    locally.
 
-13. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
+14. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
    every stored vector — the index must be rebuilt, or retrieval returns nonsense.
 
-14. **`data/chroma/` and `data/shop.db` are build outputs, and the app builds both at startup.**
+15. **`data/chroma/` and `data/shop.db` are build outputs, and the app builds both at startup.**
    They are gitignored and not baked into the image, so a deployed container has neither.
    `ensure_database()` and `ensure_index()` create them in `lifespan`. Without the first, the
    service starts happily and then fails every order lookup, which the model reports as "a

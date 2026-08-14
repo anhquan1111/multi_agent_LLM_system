@@ -72,6 +72,7 @@ def order_agent_node(state: AgentState, llm: BaseChatModel | None = None) -> dic
     return {
         "messages": new_messages,
         "route": "finish",
+        "visited": ["order_agent"],
         "step_count": 1,
         "last_agent_output": answer,
     }
