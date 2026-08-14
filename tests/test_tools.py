@@ -118,3 +118,13 @@ def test_read_and_write_tools_live_in_separate_modules():
     assert read_names.isdisjoint(write_names)
     assert not hasattr(read_tools, "WRITE_TOOLS")
     assert not hasattr(read_tools, "ALL_TOOLS")
+
+
+def test_the_database_is_built_when_missing(tmp_path, monkeypatch):
+    """A deployed container has no data/shop.db: it is gitignored and not in the image."""
+    from src.tools.db import ensure_database
+
+    monkeypatch.setattr(db.settings, "sqlite_path", tmp_path / "fresh.db")
+
+    assert ensure_database() is True
+    assert (tmp_path / "fresh.db").exists()

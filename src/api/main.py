@@ -37,6 +37,13 @@ async def lifespan(_: FastAPI):
     logger.info("LangSmith tracing: %s", "on" if enable_tracing() else "off")
 
     try:
+        from src.tools.db import ensure_database
+
+        logger.info("Shop database ready: %s", ensure_database())
+    except Exception:
+        logger.exception("Could not build the shop database; order lookups will fail")
+
+    try:
         from src.rag.store import ensure_index
 
         logger.info("Vector index ready: %d chunks", ensure_index(POLICIES))

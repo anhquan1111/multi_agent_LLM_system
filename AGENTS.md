@@ -209,8 +209,12 @@ fills its arguments; it never authors SQL.
 13. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
    every stored vector — the index must be rebuilt, or retrieval returns nonsense.
 
-14. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
-   hand-edit them and never commit them. `data/policies/*.md` is the source of truth.
+14. **`data/chroma/` and `data/shop.db` are build outputs, and the app builds both at startup.**
+   They are gitignored and not baked into the image, so a deployed container has neither.
+   `ensure_database()` and `ensure_index()` create them in `lifespan`. Without the first, the
+   service starts happily and then fails every order lookup, which the model reports as "a
+   technical issue with the database" — a symptom several layers from the cause. Never
+   hand-edit or commit them; `data/policies/*.md` is the source of truth.
 
 ## Keeping this file current
 

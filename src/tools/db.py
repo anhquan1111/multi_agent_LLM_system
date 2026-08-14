@@ -3,12 +3,40 @@
 One place that opens connections, so no tool module invents its own convention.
 """
 
+import os
 import sqlite3
+import subprocess
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 
 from src.config import settings
+
+SEED_SCRIPT = Path("scripts/seed_data.py")
+
+
+def ensure_database() -> bool:
+    """Build the shop database if it is missing. Returns whether it exists afterwards.
+
+    `data/shop.db` is a generated artifact: gitignored, and not baked into the image. Without
+    this the deployed service starts happily and then fails every order lookup, which the
+    model reports as "a technical issue with the database" — a symptom several layers away
+    from the cause. Same reasoning as `ensure_index` for the vector store.
+    """
+    if settings.sqlite_path.exists():
+        return True
+    if not SEED_SCRIPT.exists():
+        return False
+    # The target is passed through the environment rather than inherited: the child process
+    # builds its own Settings, and a real environment variable outranks the .env file.
+    subprocess.run(
+        [sys.executable, str(SEED_SCRIPT)],
+        check=True,
+        env={**os.environ, "SQLITE_PATH": str(settings.sqlite_path)},
+    )
+    return settings.sqlite_path.exists()
 
 
 @contextmanager
