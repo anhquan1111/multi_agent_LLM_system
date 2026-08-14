@@ -100,6 +100,7 @@ def _to_response(result: dict[str, Any], thread_id: str) -> ChatResponse:
         return ChatResponse(
             answer=f"{proposed['description']} Please confirm.",
             route="action_agent",
+            agents=["action_agent"],
             pending_action=proposed,
             thread_id=thread_id,
             steps=0,
@@ -108,6 +109,9 @@ def _to_response(result: dict[str, Any], thread_id: str) -> ChatResponse:
     return ChatResponse(
         answer=_answer_for_turn(result.get("messages", [])),
         route=result.get("route", "finish"),
+        # Which specialists actually ran. `route` is the last decision, so on a two-part
+        # question it is "finish" and says nothing about who answered.
+        agents=result.get("visited", []),
         citations=result.get("citations", []),
         pending_action=None,
         thread_id=thread_id,

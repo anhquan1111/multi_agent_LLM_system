@@ -211,8 +211,9 @@ function el(tag, cls, text) {
   return n;
 }
 
-function showEmpty() {
+function showEmpty(lead) {
   log.innerHTML = "";
+  if (lead) log.append(el("div", "hint", lead));
   const wrap = el("div", "empty");
   wrap.append(el("h2", null, "Try one of these"));
   wrap.append(el("p", null, "Or type your own question below. Each answer shows which agent handled it."));
@@ -259,8 +260,12 @@ function answerBlock(data) {
   const t = el("div", "turn");
   t.append(el("div", "bubble", data.answer || "(no answer)"));
   const m = el("div", "meta");
-  const b = BADGE[data.route];
-  if (b) m.append(el("span", `badge ${b[0]}`, b[1]));
+  // Every specialist that ran, not just the last decision: a two-part question is answered
+  // by two of them, and that is the whole point of the architecture.
+  (data.agents || []).forEach((name) => {
+    const b = BADGE[name];
+    if (b) m.append(el("span", `badge ${b[0]}`, b[1]));
+  });
   if (data.steps) m.append(el("span", "hint", `${data.steps} steps`));
   (data.citations || []).forEach((c) => m.append(el("span", "src", c.source)));
   if (m.childNodes.length) t.append(m);
@@ -328,8 +333,7 @@ async function ask(text) {
 // history, and seeing the access check work is the whole point of the selector.
 customer.addEventListener("change", () => {
   threadId = null;
-  showEmpty();
-  note(`Signed in as ${customer.value}. New conversation.`);
+  showEmpty(`Signed in as ${customer.value}. New conversation.`);
 });
 
 form.onsubmit = (e) => {

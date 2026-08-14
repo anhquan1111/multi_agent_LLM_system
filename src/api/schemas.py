@@ -37,6 +37,7 @@ class PendingAction(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     route: str
+    agents: list[str] = []
     citations: list[Citation] = []
     pending_action: PendingAction | None = None
     thread_id: str

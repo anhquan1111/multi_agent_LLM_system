@@ -29,6 +29,7 @@ def test_chat_returns_the_agreed_schema(client):
     assert set(body) == {
         "answer",
         "route",
+        "agents",
         "citations",
         "pending_action",
         "thread_id",
@@ -137,3 +138,19 @@ def test_the_page_has_no_external_dependencies(client):
     assert "http://" not in body
     assert "https://" not in body
     assert "<script src=" not in body
+
+
+def test_the_response_names_every_specialist_that_ran():
+    """`route` is the last decision, so a two-part answer would otherwise credit nobody."""
+    from langchain_core.messages import AIMessage
+
+    from src.api.main import _to_response
+
+    result = {
+        "messages": [AIMessage("order 1001 is delivered"), AIMessage("45 days [returns.md]")],
+        "route": "finish",
+        "visited": ["order_agent", "policy_agent"],
+        "step_count": 5,
+    }
+
+    assert _to_response(result, "t1").agents == ["order_agent", "policy_agent"]

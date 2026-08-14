@@ -27,7 +27,7 @@ action behind an explicit confirmation step.
 - `order_agent` — read-only structured lookup over orders / products / customers.
 - `action_agent` — the only component with write access (cancel order, open support ticket),
   each call paused for human confirmation before it executes.
-- FastAPI HTTP interface, Dockerised, deployed to a public Hugging Face Space.
+- FastAPI HTTP interface, Dockerised, deployed to a public URL, with a single-file demo page.
 - Conversation state persisted via a LangGraph SQLite checkpointer (multi-turn follow-ups work).
 - A 20-question gold evaluation set measuring routing and answer correctness.
 
@@ -35,7 +35,8 @@ action behind an explicit confirmation step.
 - Authentication, real user accounts, multi-tenancy. `customer_id` is passed in the request body
   and trusted; this is a demo, not a shop.
 - Payments, real order fulfilment, email/SMS delivery.
-- Streaming token output, a polished frontend, non-English input.
+- Streaming token output, non-English input. The demo page is one static file, deliberately
+  not a frontend project.
 - Re-ranking, hybrid BM25 + dense retrieval, query rewriting — listed as future work.
 
 ## 3. Input / Output
@@ -53,12 +54,17 @@ action behind an explicit confirmation step.
 `thread_id` is optional; when absent the server mints one and returns it, so a client can continue
 the conversation.
 
+`route` is the supervisor's final decision, which on a multi-hop request is `finish`. `agents`
+lists every specialist that actually ran, in order, which is what a client needs to show who
+answered.
+
 **Output**
 
 ```json
 {
   "answer": "Order 1042 shipped on 2026-08-02. Our policy allows cancellation only before...",
   "route": "policy_agent",
+  "agents": ["order_agent", "policy_agent"],
   "citations": [{"source": "returns.md", "chunk_id": "returns.md#3"}],
   "pending_action": null,
   "thread_id": "abc-123",
@@ -112,8 +118,8 @@ write tools in the first place, so no amount of prompt injection reaches them.
 
 The project is finished when all of the following are true — not when it "works on my machine":
 
-1. A public Hugging Face Space URL answers both a policy question and an order question correctly,
-   verified by hand through the live URL.
+1. A public URL answers both a policy question and an order question correctly, verified by hand
+   through the live site.
 2. A write request on the live URL stops for confirmation and only mutates data after `/confirm`.
 3. Routing accuracy ≥ 90% (18/20) on the gold set; policy answers cite a correct source document.
 4. `pytest` passes with the LLM mocked, including one integration test asserting the `/chat`
@@ -122,10 +128,11 @@ The project is finished when all of the following are true — not when it "work
    API key.
 6. README carries the problem statement, an architecture diagram, the live link, a demo GIF, local
    setup instructions, and an honest limitations / future-work section.
+7. Every guardrail is covered by a test that fails if it is removed.
 
 ## 8. Tech stack
 
-Python 3.12 · LangGraph 1.2 · langchain-core 1.5 · Gemini (`gemini-3.6-flash` +
+Python 3.12 · LangGraph 1.2 · langchain-core 1.5 · Gemini (`gemini-3.1-flash-lite` +
 `gemini-embedding-2` truncated to 768 dims) · Chroma · SQLite · FastAPI · Docker ·
 GitHub Actions · LangSmith.
 
@@ -136,7 +143,9 @@ in `AGENTS.md`.
 
 - **LangGraph 1.x vs 0.x** — most tutorials and the course material target 0.x. Import paths,
   `interrupt()`, and checkpointer setup differ. Verify against installed source, never from memory.
-- **Gemini free-tier rate limits** — could stall the evaluation run. Mitigated by caching embeddings
-  at build time and mocking the LLM in tests.
-- **Hugging Face Spaces free tier** — single container, limited RAM. Chroma index is built during
-  the Docker build, not at boot, so cold start stays fast.
+- **Gemini free-tier quota** — 20 calls per day per model, and a full evaluation pass costs about
+  60. Mitigated by mocking every model call in tests, and by a `--routing-only` evaluation mode
+  that scores the headline metric at one call per case.
+- **Free hosting on ephemeral disk** — one container, and the filesystem is wiped on every deploy
+  and every wake from sleep. The database and the vector index are therefore rebuilt at startup
+  rather than baked into the image, which also avoids passing the API key as a build argument.
