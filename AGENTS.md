@@ -13,16 +13,16 @@ Do not expand scope beyond the spec without asking.
 
 ## Current status (14/08/2026)
 
-Steps 0–5 are done. Supervisor routing, policy RAG, read-only order lookups and a
-write agent behind human approval all work end to end, verified against the live API.
-Deployed at **https://multi-agent-llm-system.onrender.com** (Render free tier — sleeps after
-15 min, first request ~50s; auto-deploys on every push to `master`).
+Steps 0–6 are done. Supervisor routing, policy RAG, read-only order lookups, a write agent
+behind human approval, a 20-case gold set, GitHub Actions CI and optional LangSmith tracing all
+work end to end. Deployed at **https://multi-agent-llm-system.onrender.com** (Render free tier —
+sleeps after 15 min, first request ~50s; auto-deploys on every push to `master`).
 
-Working: `GET /`, `GET /health`, `POST /chat`, `POST /confirm`; 45 passing tests, all LLM and
-retrieval calls mocked.
+Working: `GET /`, `GET /health`, `POST /chat`, `POST /confirm`; 57 passing tests, all LLM and
+retrieval calls mocked. Routing accuracy 14/14 on the cases scored so far; the remaining six need
+another day's free-tier quota.
 
-Next — step 6: 20-question gold evaluation set, GitHub Actions CI, LangSmith tracing.
-Then step 7: README, demo GIF, polish.
+Next — step 7: README polish, demo GIF, finish scoring the gold set.
 
 ## Stack (verified 13/08/2026, do not guess these)
 
@@ -38,7 +38,7 @@ Then step 7: README, demo GIF, polish.
 | pydantic | 2.13.4 |
 | pytest / ruff | 9.1.1 / 0.16.2 |
 
-Models: `gemini-3.5-flash-lite` (LLM), `gemini-embedding-2` truncated to 768 dims (embeddings).
+Models: `gemini-3.1-flash-lite` (LLM), `gemini-embedding-2` truncated to 768 dims (embeddings).
 Google SDK is `google-genai` (import `from google import genai`), **not** the retired
 `google-generativeai`.
 
