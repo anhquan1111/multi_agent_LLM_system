@@ -9,7 +9,7 @@ unit-testable without mocking anything.
 """
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from src.agents.llm import get_llm, with_retry
@@ -21,6 +21,11 @@ STUCK_MESSAGE = "I am not making progress on this request. Please rephrase it, o
 CAP_MESSAGE = (
     "This request needed more steps than I am allowed to take. "
     "Please ask a narrower question, or contact support."
+)
+CAPABILITIES_MESSAGE = (
+    "I can help with shop policies — returns, shipping, warranty, payment, privacy and "
+    "membership tiers — with your own orders, and with cancelling an order or opening a "
+    "support ticket. What would you like to know?"
 )
 
 SYSTEM_PROMPT = """You route customer support requests to exactly one specialist.
@@ -66,7 +71,28 @@ def supervisor_node(state: AgentState, llm: BaseChatModel | None = None) -> dict
         [SystemMessage(content=SYSTEM_PROMPT), *transcript(state, ROUTING_QUESTION)]
     )
 
+    # Finishing before any specialist has spoken means nothing answered the customer — a
+    # greeting, or a request outside what this shop's support covers. Returning silently
+    # would send them an empty string, so say what this assistant can actually do.
+    if decision.route == "finish" and not _answered_this_turn(state):
+        return {
+            "route": "finish",
+            "messages": [AIMessage(content=CAPABILITIES_MESSAGE)],
+            "step_count": 1,
+            "last_agent_output": CAPABILITIES_MESSAGE,
+        }
+
     return {"route": decision.route, "step_count": 1}
+
+
+def _answered_this_turn(state: AgentState) -> bool:
+    """True when a specialist has already produced an answer since the customer last spoke."""
+    for message in reversed(state.get("messages", [])):
+        if isinstance(message, HumanMessage):
+            return False
+        if isinstance(message, AIMessage) and message.text.strip():
+            return True
+    return False
 
 
 def route_from_supervisor(state: AgentState) -> str:

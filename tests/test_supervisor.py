@@ -87,3 +87,32 @@ def test_transcript_keeps_answers_but_drops_tool_plumbing():
     assert kinds == ["HumanMessage", "AIMessage", "HumanMessage"]
     assert result[-1].content == "which specialist next?"
     assert not any(getattr(m, "tool_calls", None) for m in result)
+
+
+def test_a_greeting_gets_an_answer_not_an_empty_string(fake_llm):
+    """Finishing with nothing said sends the customer an empty response."""
+    from src.agents.supervisor import CAPABILITIES_MESSAGE
+
+    fake_llm.route = "finish"
+    fake_llm.routed = True  # force "finish" on the first turn
+
+    result = supervisor_node({"messages": [HumanMessage("hello")], "step_count": 0}, llm=fake_llm)
+
+    assert result["route"] == "finish"
+    assert result["messages"][0].content == CAPABILITIES_MESSAGE
+
+
+def test_finishing_after_a_specialist_answered_adds_nothing(fake_llm):
+    """The capability message must not be appended to a real answer."""
+    from langchain_core.messages import AIMessage
+
+    fake_llm.route = "finish"
+    fake_llm.routed = True
+    state = {
+        "messages": [HumanMessage("return policy?"), AIMessage("You have 30 days [returns.md].")],
+        "step_count": 2,
+    }
+
+    result = supervisor_node(state, llm=fake_llm)
+
+    assert "messages" not in result
