@@ -154,7 +154,7 @@ docker run -p 7860:7860 --env-file .env masys      # -e PORT=10000 to mimic Rend
 ## Tests
 
 ```bash
-uv run pytest        # 61 tests, every model and retrieval call mocked
+uv run pytest        # 63 tests, every model and retrieval call mocked
 uv run ruff check .
 ```
 
