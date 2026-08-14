@@ -116,3 +116,14 @@ def test_tracing_copies_settings_into_environ(monkeypatch):
     assert enable_tracing() is True
     assert os.environ["LANGCHAIN_API_KEY"] == "ls-fake"
     assert os.environ["LANGCHAIN_PROJECT"] == "test-project"
+
+
+def test_the_default_model_matches_the_documented_one():
+    """A host that sets no LLM_MODEL runs the default, so it must be the evaluated model.
+
+    Render sets no LLM_MODEL and silently ran a different model from the one the gold set was
+    scored against, which made the published accuracy describe a system nobody was using.
+    """
+    from src.config import Settings
+
+    assert Settings.model_fields["llm_model"].default == "gemini-3.1-flash-lite"

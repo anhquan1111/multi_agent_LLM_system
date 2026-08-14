@@ -16,8 +16,10 @@ class Settings(BaseSettings):
     # /health reports the gap instead of the process crashing on import.
     google_api_key: str = ""
 
-    # Models
-    llm_model: str = "gemini-3.6-flash"
+    # Models. These defaults are what the deployed service runs on, because a host that sets
+    # no LLM_MODEL falls back to them — keep them equal to what the evaluation was scored
+    # against, or the published numbers describe a different system from the live one.
+    llm_model: str = "gemini-3.1-flash-lite"
     embedding_model: str = "gemini-embedding-2"
     embedding_dim: int = 768
 
