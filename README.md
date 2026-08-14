@@ -87,14 +87,20 @@ uv run ruff check .
 ## Evaluation
 
 ```bash
-uv run python scripts/run_eval.py            # score the gold set, resumable
-uv run python scripts/run_eval.py --report   # print the last report
+uv run python scripts/run_eval.py --routing-only   # 1 model call per case
+uv run python scripts/run_eval.py                  # full: ~3 calls per case
+uv run python scripts/run_eval.py --report         # print the last report
 ```
 
+**Routing accuracy: 14/14 (100%)** on the cases scored so far, against a 90% target.
+
 Twenty cases across all three routes plus one out-of-scope question. The harness records which
-specialist actually ran, which sources were cited, and whether the answer contains the expected
-fact. Free-tier quota is 20 model calls per day per model and a full pass costs roughly 60, so
-results are appended per case and a run can be resumed.
+specialist actually ran — observed by streaming node execution, not inferred from the output —
+along with the sources cited and whether the answer contains the expected fact.
+
+Free-tier quota is 20 model calls per day per model. A full pass costs roughly 60, so
+`--routing-only` scores just the supervisor's decision at one call per case, which fits a single
+day and covers the headline metric. Results are appended per case, so any run can be resumed.
 
 ## Roadmap
 

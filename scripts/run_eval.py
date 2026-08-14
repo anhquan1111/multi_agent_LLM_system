@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from langchain_core.messages import HumanMessage  # noqa: E402
 
 from src.agents.graph import build_graph, open_checkpointer  # noqa: E402
+from src.agents.supervisor import supervisor_node  # noqa: E402
 from src.config import settings  # noqa: E402
 from src.tools import db  # noqa: E402
 
@@ -46,6 +47,37 @@ def load(path: Path) -> list[dict]:
 
 
 SPECIALIST_NODES = {"policy_agent", "order_agent", "action_agent"}
+
+
+def run_routing_only(case: dict) -> dict:
+    """Score the routing decision alone: one model call instead of three.
+
+    Routing accuracy is the headline number in the spec, and it is decided entirely by the
+    supervisor's first call. Running the full graph to measure it costs three times as much
+    for no extra information about routing. On a free tier capped at 20 calls per day this is
+    the difference between scoring the whole set today and scoring a third of it.
+    """
+    started = time.time()
+    result = supervisor_node(
+        {"messages": [HumanMessage(case["question"])], "customer_id": CUSTOMER_ID, "step_count": 0}
+    )
+    route = result.get("route", "finish")
+    return {
+        "id": case["id"],
+        "model": settings.llm_model,
+        "mode": "routing_only",
+        "question": case["question"],
+        "expected_route": case["route"],
+        "actual_route": route,
+        "visited": [],
+        "route_ok": route == case["route"],
+        "expected_sources": case["sources"],
+        "actual_sources": [],
+        "source_ok": True,
+        "content_ok": True,
+        "answer": "(routing only — the answer was not generated)",
+        "seconds": round(time.time() - started, 1),
+    }
 
 
 def run_case(graph, case: dict) -> dict:
@@ -116,6 +148,9 @@ def report(rows: list[dict]) -> None:
     sourcing = sum(r["source_ok"] for r in rows)
     content = sum(r["content_ok"] for r in rows)
     print("-" * 78)
+    routing_only = sum(1 for r in rows if r.get("mode") == "routing_only")
+    if routing_only:
+        print(f"({routing_only} of these scored routing only — answers were not generated)")
     print(f"cases scored      {n}/20")
     print(f"routing accuracy  {routing}/{n} ({routing / n:.0%})   target >= 90%")
     print(f"correct source    {sourcing}/{n} ({sourcing / n:.0%})")
@@ -134,6 +169,11 @@ def main() -> None:
     parser.add_argument("--only", help="comma-separated ids, e.g. p02,o01")
     parser.add_argument("--fresh", action="store_true", help="discard previous results")
     parser.add_argument("--report", action="store_true", help="print the report and exit")
+    parser.add_argument(
+        "--routing-only",
+        action="store_true",
+        help="score routing with one model call per case instead of three",
+    )
     args = parser.parse_args()
 
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
@@ -152,8 +192,25 @@ def main() -> None:
     done = {r["id"] for r in load(RESULTS)}
     todo = [c for c in cases if c["id"] not in done]
 
+    mode = "routing only (1 call/case)" if args.routing_only else "full (about 3 calls/case)"
     print(f"gold set {len(load(GOLD))} cases | already scored {len(done)} | running {len(todo)}")
+    print(f"mode: {mode} | model: {settings.llm_model}")
     if not todo:
+        report(load(RESULTS))
+        return
+
+    if args.routing_only:
+        for case in todo:
+            try:
+                row = run_routing_only(case)
+            except Exception as exc:  # noqa: BLE001 — quota and network failures stop the run
+                print(f"\n[{case['id']}] stopped: {type(exc).__name__}: {str(exc)[:120]}")
+                print("Progress is saved. Re-run to continue from here.")
+                break
+            with RESULTS.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            flag = "ok  " if row["route_ok"] else "FAIL"
+            print(f"  [{row['id']}] {flag} {row['actual_route']:14} {row['seconds']}s")
         report(load(RESULTS))
         return
 
