@@ -49,7 +49,7 @@ Scope and definition of done: [`docs/spec.md`](docs/spec.md).
 
 ## Tech stack
 
-Python 3.12 · LangGraph 1.2 · Gemini (`gemini-3.5-flash-lite` + `gemini-embedding-2`) · Chroma ·
+Python 3.12 · LangGraph 1.2 · Gemini (`gemini-3.1-flash-lite` + `gemini-embedding-2`) · Chroma ·
 SQLite · FastAPI · Docker · GitHub Actions
 
 ## Endpoints
