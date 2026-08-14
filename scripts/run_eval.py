@@ -138,25 +138,40 @@ def report(rows: list[dict]) -> None:
     print("-" * 78)
     for r in sorted(rows, key=lambda r: r["id"]):
         mark = lambda ok: " ok " if ok else "FAIL"  # noqa: E731
+        routing_only = r.get("mode") == "routing_only"
+        src = " -  " if routing_only else mark(r["source_ok"])
+        txt = " -  " if routing_only else mark(r["content_ok"])
         print(
             f"{r['id']:6} {r['actual_route']:14} {mark(r['route_ok'])} "
-            f"{mark(r['source_ok'])} {mark(r['content_ok'])}  {r['question'][:38]}"
+            f"{src} {txt}  {r['question'][:38]}"
         )
 
     n = len(rows)
     routing = sum(r["route_ok"] for r in rows)
-    sourcing = sum(r["source_ok"] for r in rows)
-    content = sum(r["content_ok"] for r in rows)
+    # Source and content are only meaningful for rows that actually produced an answer.
+    # In routing-only mode they are placeholders, and reporting them as measured results
+    # would claim a number nobody measured.
+    answered = [r for r in rows if r.get("mode") != "routing_only"]
+
     print("-" * 78)
-    routing_only = sum(1 for r in rows if r.get("mode") == "routing_only")
-    if routing_only:
-        print(f"({routing_only} of these scored routing only — answers were not generated)")
     print(f"cases scored      {n}/20")
     print(f"routing accuracy  {routing}/{n} ({routing / n:.0%})   target >= 90%")
-    print(f"correct source    {sourcing}/{n} ({sourcing / n:.0%})")
-    print(f"answer contains   {content}/{n} ({content / n:.0%})")
+    if answered:
+        sourcing = sum(r["source_ok"] for r in answered)
+        content = sum(r["content_ok"] for r in answered)
+        m = len(answered)
+        print(f"correct source    {sourcing}/{m} ({sourcing / m:.0%})   of {m} full answers")
+        print(f"answer contains   {content}/{m} ({content / m:.0%})   of {m} full answers")
+    else:
+        print("correct source    not measured — every case was scored routing only")
+        print("answer contains   not measured — every case was scored routing only")
 
-    failed = [r for r in rows if not (r["route_ok"] and r["source_ok"] and r["content_ok"])]
+    failed = [
+        r
+        for r in rows
+        if not r["route_ok"]
+        or (r.get("mode") != "routing_only" and not (r["source_ok"] and r["content_ok"]))
+    ]
     if failed:
         print(f"\n{len(failed)} case(s) to look at:")
         for r in failed:

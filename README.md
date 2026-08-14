@@ -97,9 +97,13 @@ route, expected source, and a fact the answer must contain.
 
 | Metric | Result | Target |
 |---|---|---|
-| **Routing accuracy** | **14/14 (100%)** on the cases scored so far | ≥ 90% |
-| Correct source cited | 14/14 | — |
-| Answer contains the expected fact | 14/14 | — |
+| **Routing accuracy** | **20/20 (100%)** | ≥ 90% |
+| Correct source cited | measured in full mode only | — |
+| Answer contains the expected fact | measured in full mode only | — |
+
+The 20/20 comes from `--routing-only`, which scores the supervisor's decision at one model call
+per case. Source and answer checks need the full mode, which costs about 60 calls — more than a
+day of free-tier quota. The report says so rather than printing a number nobody measured.
 
 ```bash
 uv run python scripts/run_eval.py --routing-only   # 1 model call per case
@@ -177,9 +181,10 @@ Written out rather than left to be discovered. Each of these is a decision, not 
 - **Synthetic data**, generated from a fixed seed so the gold set stays valid. A real deployment
   would connect to an existing database and run migrations, not seed one at startup.
 - **No reranking, hybrid retrieval or query rewriting.** Deferred until the gold set shows
-  retrieval is the bottleneck; at 14/14 on sources, it is not yet.
-- **Six of twenty gold cases are unscored.** Finishing the set needs more daily quota than the
-  free tier gives. Each recorded result names the model that produced it.
+  retrieval is the bottleneck, which needs the full evaluation mode to establish.
+- **Source and answer checks are unscored.** Routing is 20/20, but the full mode — which also
+  verifies the cited source and the expected fact — costs about 60 model calls, past a day of
+  free-tier quota. Each recorded result names the model and the mode that produced it.
 - **English only.** One shop, one currency, no localisation.
 
 ## Given more time
