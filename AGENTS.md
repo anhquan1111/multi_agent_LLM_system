@@ -13,16 +13,19 @@ Do not expand scope beyond the spec without asking.
 
 ## Current status (14/08/2026)
 
-Steps 0–6 are done. Supervisor routing, policy RAG, read-only order lookups, a write agent
-behind human approval, a 20-case gold set, GitHub Actions CI and optional LangSmith tracing all
-work end to end. Deployed at **https://multi-agent-llm-system.onrender.com** (Render free tier —
-sleeps after 15 min, first request ~50s; auto-deploys on every push to `master`).
+All seven steps are done. Supervisor routing, policy RAG, read-only order lookups, a write agent
+behind human approval, the guardrails, a 20-case gold set, GitHub Actions CI, optional LangSmith
+tracing, a single-file demo page and the README are all in place.
 
-Working: `GET /`, `GET /health`, `POST /chat`, `POST /confirm`; 57 passing tests, all LLM and
-retrieval calls mocked. Routing accuracy 14/14 on the cases scored so far; the remaining six need
-another day's free-tier quota.
+Live at **https://multi-agent-llm-system.onrender.com** (Render free tier — sleeps after 15 min,
+first request ~50s; auto-deploys on every push to `master`).
 
-Next — step 7: README polish, demo GIF, finish scoring the gold set.
+Working: `GET /`, `GET /health`, `POST /chat`, `POST /confirm`; 63 passing tests, every model and
+retrieval call mocked.
+
+Open work: six of the twenty gold cases are unscored, needing another day of free-tier quota.
+`uv run python scripts/run_eval.py --routing-only` skips what is already recorded. Everything
+under "Given more time" in the README is deliberate future work, not an oversight.
 
 ## Stack (verified 13/08/2026, do not guess these)
 
