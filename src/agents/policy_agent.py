@@ -79,10 +79,13 @@ def policy_agent_node(state: AgentState, llm: BaseChatModel | None = None) -> di
         if chunk.source in answer and chunk.source not in {c.source for c in cited}:
             cited.append(chunk)
 
-    return {
+    result = {
         "messages": [AIMessage(content=answer)],
-        "citations": [c.as_citation() for c in cited],
         "route": "finish",
         "step_count": 1,
         "last_agent_output": answer,
     }
+    # Omitted rather than set to []: an explicit empty list is how the API signals a new turn.
+    if cited:
+        result["citations"] = [c.as_citation() for c in cited]
+    return result

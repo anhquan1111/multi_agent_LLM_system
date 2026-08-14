@@ -194,14 +194,22 @@ fills its arguments; it never authors SQL.
    `propose_action_node` (model call, writes `pending_action` to state) and
    `confirm_action_node` (interrupt, then executes the stored proposal). Do not merge them.
 
-11. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
+11. **State scoped to one exchange must be reset explicitly on every turn.** The checkpointer
+   keeps state alive across messages on the same `thread_id`, which is what makes multi-turn
+   conversation work — and what silently broke three things: the step cap ended any
+   conversation on its third message, sources from an old question came back attached to a new
+   answer, and asking the same thing twice tripped stuck detection. `/chat` therefore resets
+   `step_count`, `citations`, `last_agent_output` and `error`. `operator.add` cannot express a
+   reset (passing 0 adds 0), hence the custom `count_steps` and `collect_citations` reducers.
+
+12. **Docker must bind `0.0.0.0`, port `7860`.** Hugging Face Spaces requires 7860, and binding
    `127.0.0.1` inside a container makes the service unreachable from outside while still working
    locally.
 
-12. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
+13. **Embeddings are truncated to 768 dims** from a native 3072. Changing this silently invalidates
    every stored vector — the index must be rebuilt, or retrieval returns nonsense.
 
-13. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
+14. **`data/chroma/` and `data/shop.db` are build outputs.** Regenerate them with the scripts; never
    hand-edit them and never commit them. `data/policies/*.md` is the source of truth.
 
 ## Keeping this file current

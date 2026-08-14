@@ -132,7 +132,14 @@ def chat(request: ChatRequest) -> ChatResponse:
         {
             "messages": [HumanMessage(content=request.message)],
             "customer_id": request.customer_id,
+            # Everything scoped to a single exchange is reset here. Left to persist, the
+            # step cap ended a conversation on its third message, sources from an old
+            # question came back attached to a new answer, and asking the same thing twice
+            # tripped stuck detection. See the reducers in src/agents/state.py.
             "step_count": 0,
+            "citations": [],
+            "last_agent_output": "",
+            "error": None,
         },
         config=_config(thread_id),
     )
