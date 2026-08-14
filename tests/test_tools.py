@@ -13,10 +13,10 @@ SHOP_DB = Path("data/shop.db")
 
 
 @pytest.fixture
-def temp_db(tmp_path, monkeypatch):
+def temp_db(tmp_path, monkeypatch, shop_db):
     """Each test gets its own copy, so write tests cannot affect anything else."""
     copy = tmp_path / "shop.db"
-    shutil.copy(SHOP_DB, copy)
+    shutil.copy(shop_db, copy)
     monkeypatch.setattr(db.settings, "sqlite_path", copy)
     return copy
 

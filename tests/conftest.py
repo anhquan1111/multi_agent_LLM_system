@@ -5,6 +5,10 @@ default, so a newly written test cannot reach Chroma or Gemini by accident — i
 (`@pytest.mark.live`), not opt-in.
 """
 
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
@@ -66,6 +70,22 @@ class FakeLLM:
     def invoke(self, messages):
         self.calls.append(messages)
         return AIMessage(content=self.answer, tool_calls=self.tool_calls)
+
+
+SHOP_DB = Path("data/shop.db")
+
+
+@pytest.fixture(scope="session")
+def shop_db() -> Path:
+    """The seeded shop database, built on demand.
+
+    `data/shop.db` is a build output and gitignored, so a fresh clone and a CI runner do not
+    have it. Building it here means `pytest` works straight after `git clone`, instead of
+    failing with a missing-file error that says nothing about the real cause.
+    """
+    if not SHOP_DB.exists():
+        subprocess.run([sys.executable, "scripts/seed_data.py"], check=True)
+    return SHOP_DB
 
 
 @pytest.fixture
