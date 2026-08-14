@@ -1,5 +1,7 @@
 # Multi-Agent E-Commerce Support Assistant
 
+![CI](https://github.com/anhquan1111/multi_agent_LLM_system/actions/workflows/ci.yml/badge.svg)
+
 **Live demo:** https://multi-agent-llm-system.onrender.com
 
 A customer-support assistant that has to answer two fundamentally different kinds of question —

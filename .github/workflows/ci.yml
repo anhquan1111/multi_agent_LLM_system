@@ -37,7 +37,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Building proves the image still assembles. It is not started here: without a key it
-      # could only answer /health, which the test job already covers.
       - name: Build image
         run: docker build -t masys .
+
+      # A build that succeeds does not mean a container that starts. That distinction is not
+      # theoretical here: a trailing comment in .env once produced a green build and a
+      # container that died on boot. The key is deliberately fake — index building fails and
+      # is logged, but startup must survive it and /health must still answer.
+      - name: Smoke test the image
+        run: |
+          docker run -d --name smoke -p 7860:7860 -e GOOGLE_API_KEY=not-a-real-key masys
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:7860/health > /dev/null && break
+            sleep 2
+          done
+          echo "--- container logs ---"
+          docker logs smoke
+          echo "--- /health ---"
+          curl -sf http://127.0.0.1:7860/health | tee /dev/stderr | grep -q '"status":"ok"'
+          docker rm -f smoke
