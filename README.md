@@ -2,8 +2,6 @@
 
 ![CI](https://github.com/anhquan1111/multi_agent_LLM_system/actions/workflows/ci.yml/badge.svg)
 
-**▶ Live demo: https://multi-agent-llm-system.onrender.com**
-
 ![A policy question answered with its source, then a cancellation held for approval](docs/demo.gif)
 
 A support assistant for an online shop, built on the observation that customers ask three
